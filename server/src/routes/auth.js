@@ -30,7 +30,7 @@ async function lookupCountry(ip) {
 const router = Router();
 
 // POST /api/auth/request-otp
-router.post('/request-otp', (req, res) => {
+router.post('/request-otp', async (req, res) => {
   const { email } = req.body;
 
   if (!email || typeof email !== 'string') {
@@ -44,7 +44,7 @@ router.post('/request-otp', (req, res) => {
   }
 
   try {
-    const result = requestOtp(email);
+    const result = await requestOtp(email);
     res.json(result);
   } catch (error) {
     console.error('Error requesting OTP:', error);

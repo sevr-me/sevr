@@ -1,5 +1,31 @@
 import { Router } from 'express';
-import { requestOtp, verifyOtp, refreshAccessToken, logout } from '../auth.js';
+import { requestOtp, verifyOtp, refreshAccessToken, logout, updateUserCountry } from '../auth.js';
+
+// Get client IP from request
+function getClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+         req.headers['x-real-ip'] ||
+         req.socket?.remoteAddress ||
+         req.ip;
+}
+
+// Lookup country from IP using free API
+async function lookupCountry(ip) {
+  // Skip for localhost/private IPs
+  if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+    return null;
+  }
+  try {
+    const response = await fetch(`http://ip-api.com/json/${ip}?fields=countryCode`);
+    if (response.ok) {
+      const data = await response.json();
+      return data.countryCode || null;
+    }
+  } catch (err) {
+    console.error('IP lookup failed:', err.message);
+  }
+  return null;
+}
 
 const router = Router();
 
@@ -27,7 +53,7 @@ router.post('/request-otp', (req, res) => {
 });
 
 // POST /api/auth/verify-otp
-router.post('/verify-otp', (req, res) => {
+router.post('/verify-otp', async (req, res) => {
   const { email, code } = req.body;
 
   if (!email || !code) {
@@ -39,6 +65,15 @@ router.post('/verify-otp', (req, res) => {
 
     if (!result.success) {
       return res.status(401).json({ error: result.error });
+    }
+
+    // For new users, look up and store country
+    if (result.isNewUser) {
+      const ip = getClientIp(req);
+      const countryCode = await lookupCountry(ip);
+      if (countryCode) {
+        updateUserCountry(result.user.id, countryCode);
+      }
     }
 
     res.json(result);

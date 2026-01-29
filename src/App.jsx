@@ -144,6 +144,8 @@ function App() {
     stats: adminStats,
     users: adminUsers,
     activities: adminActivities,
+    usersOverTime: adminUsersOverTime,
+    usersByCountry: adminUsersByCountry,
     loading: adminLoading,
     refresh: adminRefresh,
     connectActivityFeed,
@@ -326,6 +328,8 @@ function App() {
         stats={adminStats}
         users={adminUsers}
         activities={adminActivities}
+        usersOverTime={adminUsersOverTime}
+        usersByCountry={adminUsersByCountry}
         loading={adminLoading}
         onRefresh={adminRefresh}
         onConnect={connectActivityFeed}

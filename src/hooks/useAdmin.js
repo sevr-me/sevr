@@ -5,6 +5,8 @@ export function useAdmin(authUser) {
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
   const [activities, setActivities] = useState([])
+  const [usersOverTime, setUsersOverTime] = useState([])
+  const [usersByCountry, setUsersByCountry] = useState([])
   const [loading, setLoading] = useState(false)
   const eventSourceRef = useRef(null)
 
@@ -34,11 +36,35 @@ export function useAdmin(authUser) {
     }
   }, [isAdmin])
 
+  const fetchUsersOverTime = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const response = await api('/api/admin/users-over-time')
+      if (response.ok) {
+        setUsersOverTime(await response.json())
+      }
+    } catch (err) {
+      console.error('Failed to fetch users over time:', err)
+    }
+  }, [isAdmin])
+
+  const fetchUsersByCountry = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const response = await api('/api/admin/users-by-country')
+      if (response.ok) {
+        setUsersByCountry(await response.json())
+      }
+    } catch (err) {
+      console.error('Failed to fetch users by country:', err)
+    }
+  }, [isAdmin])
+
   const refresh = useCallback(async () => {
     setLoading(true)
-    await Promise.all([fetchStats(), fetchUsers()])
+    await Promise.all([fetchStats(), fetchUsers(), fetchUsersOverTime(), fetchUsersByCountry()])
     setLoading(false)
-  }, [fetchStats, fetchUsers])
+  }, [fetchStats, fetchUsers, fetchUsersOverTime, fetchUsersByCountry])
 
   // Connect to SSE activity feed
   const connectActivityFeed = useCallback(() => {
@@ -115,6 +141,8 @@ export function useAdmin(authUser) {
     stats,
     users,
     activities,
+    usersOverTime,
+    usersByCountry,
     loading,
     refresh,
     connectActivityFeed,

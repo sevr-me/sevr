@@ -15,6 +15,7 @@ import {
   revokeRefreshToken,
   revokeAllUserTokens,
   setUserAdmin,
+  setUserCountry,
 } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -143,7 +144,15 @@ export function verifyOtp(email, code) {
     accessToken,
     refreshToken,
     user: { id: user.id, email: user.email, isAdmin: !!user.is_admin },
+    isNewUser,
   };
+}
+
+// Update user's country code
+export function updateUserCountry(userId, countryCode) {
+  if (countryCode && typeof countryCode === 'string') {
+    setUserCountry.run(countryCode.toUpperCase(), userId);
+  }
 }
 
 // Generate access token

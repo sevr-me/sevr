@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
-import { getUserCount, getGuideCount, getAllUsersWithStats } from '../db.js';
+import { getUserCount, getGuideCount, getAllUsersWithStats, getUsersOverTime, getUsersByCountry } from '../db.js';
 import { setActivityBroadcaster } from '../auth.js';
 
 const router = Router();
@@ -50,6 +50,37 @@ router.get('/users', (req, res) => {
   } catch (error) {
     console.error('Error fetching admin users:', error);
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// GET /api/admin/users-over-time
+router.get('/users-over-time', (req, res) => {
+  try {
+    const data = getUsersOverTime.all();
+    // Convert to cumulative count
+    let cumulative = 0;
+    const result = data.map(row => {
+      cumulative += row.count;
+      return { date: row.date, count: cumulative };
+    });
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching users over time:', error);
+    res.status(500).json({ error: 'Failed to fetch data' });
+  }
+});
+
+// GET /api/admin/users-by-country
+router.get('/users-by-country', (req, res) => {
+  try {
+    const data = getUsersByCountry.all();
+    res.json(data.map(row => ({
+      country: row.country_code,
+      count: row.count,
+    })));
+  } catch (error) {
+    console.error('Error fetching users by country:', error);
+    res.status(500).json({ error: 'Failed to fetch data' });
   }
 });
 

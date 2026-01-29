@@ -5,10 +5,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { UsersChart } from './UsersChart'
+import { WorldMap } from './WorldMap'
 
 export function AdminDashboard({
   open,
@@ -16,6 +17,8 @@ export function AdminDashboard({
   stats,
   users,
   activities,
+  usersOverTime,
+  usersByCountry,
   loading,
   onRefresh,
   onConnect,
@@ -37,7 +40,7 @@ export function AdminDashboard({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh]">
+      <DialogContent className="sm:max-w-3xl max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>Admin Dashboard</DialogTitle>
         </DialogHeader>
@@ -59,9 +62,14 @@ export function AdminDashboard({
           ))}
         </div>
 
-        <ScrollArea className="h-[50vh]">
+        <ScrollArea className="h-[60vh]">
           {activeTab === 'overview' && (
-            <OverviewTab stats={stats} loading={loading} />
+            <OverviewTab
+              stats={stats}
+              usersOverTime={usersOverTime}
+              usersByCountry={usersByCountry}
+              loading={loading}
+            />
           )}
           {activeTab === 'users' && (
             <UsersTab users={users} loading={loading} />
@@ -75,32 +83,59 @@ export function AdminDashboard({
   )
 }
 
-function OverviewTab({ stats, loading }) {
+function OverviewTab({ stats, usersOverTime, usersByCountry, loading }) {
   if (loading) {
     return <div className="text-center py-8 text-muted-foreground">Loading...</div>
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 p-1">
+    <div className="space-y-6 p-1">
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Users
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats?.userCount ?? 0}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Community Guides
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats?.guideCount ?? 0}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Users over time chart */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Users
+            Users Over Time
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{stats?.userCount ?? 0}</div>
+          <UsersChart data={usersOverTime} />
         </CardContent>
       </Card>
 
+      {/* Geographic distribution */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Community Guides
+            Geographic Distribution
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{stats?.guideCount ?? 0}</div>
+          <WorldMap data={usersByCountry} />
         </CardContent>
       </Card>
     </div>

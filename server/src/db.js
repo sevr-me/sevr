@@ -120,6 +120,11 @@ if (!userColumns.includes('is_admin')) {
   console.log('Added is_admin column to users table');
 }
 
+if (!userColumns.includes('country_code')) {
+  db.exec(`ALTER TABLE users ADD COLUMN country_code TEXT`);
+  console.log('Added country_code column to users table');
+}
+
 // User queries
 export const createUser = db.prepare(`
   INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)
@@ -283,6 +288,25 @@ export const getAllUsersWithStats = db.prepare(`
 
 export const setUserAdmin = db.prepare(`
   UPDATE users SET is_admin = ? WHERE id = ?
+`);
+
+export const setUserCountry = db.prepare(`
+  UPDATE users SET country_code = ? WHERE id = ?
+`);
+
+export const getUsersOverTime = db.prepare(`
+  SELECT DATE(created_at) as date, COUNT(*) as count
+  FROM users
+  GROUP BY DATE(created_at)
+  ORDER BY date ASC
+`);
+
+export const getUsersByCountry = db.prepare(`
+  SELECT country_code, COUNT(*) as count
+  FROM users
+  WHERE country_code IS NOT NULL
+  GROUP BY country_code
+  ORDER BY count DESC
 `);
 
 export default db;

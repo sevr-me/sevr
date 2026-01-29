@@ -7,6 +7,18 @@ export function UsersChart({ data }) {
     )
   }
 
+  // Handle single data point - show as a simple stat
+  if (data.length === 1) {
+    return (
+      <div className="h-48 flex flex-col items-center justify-center">
+        <div className="text-4xl font-bold">{data[0].count}</div>
+        <div className="text-sm text-muted-foreground mt-1">
+          users as of {formatDate(data[0].date)}
+        </div>
+      </div>
+    )
+  }
+
   // Calculate dimensions
   const width = 500
   const height = 200

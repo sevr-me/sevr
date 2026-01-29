@@ -11,9 +11,9 @@ function getClientIp(req) {
 
 // Lookup country from IP using free API
 async function lookupCountry(ip) {
-  // Skip for localhost/private IPs
+  // For localhost/private IPs, use DEV_COUNTRY env var if set (for testing)
   if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
-    return null;
+    return process.env.DEV_COUNTRY || null;
   }
   try {
     const response = await fetch(`http://ip-api.com/json/${ip}?fields=countryCode`);

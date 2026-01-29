@@ -110,6 +110,13 @@ export function useAdmin(authUser) {
                 const data = JSON.parse(line.slice(6))
                 if (data.type !== 'connected') {
                   setActivities(prev => [data, ...prev].slice(0, 50))
+                  // Refresh stats when new signup occurs
+                  if (data.type === 'signup') {
+                    fetchStats()
+                    fetchUsers()
+                    fetchUsersOverTime()
+                    fetchUsersByCountry()
+                  }
                 }
               } catch (e) {
                 // Ignore parse errors
@@ -126,7 +133,7 @@ export function useAdmin(authUser) {
     }).catch(err => {
       console.error('Activity feed connection error:', err)
     })
-  }, [isAdmin])
+  }, [isAdmin, fetchStats, fetchUsers, fetchUsersOverTime, fetchUsersByCountry])
 
   // Cleanup on unmount
   useEffect(() => {

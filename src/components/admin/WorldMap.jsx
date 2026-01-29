@@ -73,8 +73,9 @@ const COUNTRY_NAMES = {
 export function WorldMap({ data }) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-        No geographic data available
+      <div className="h-32 flex flex-col items-center justify-center text-muted-foreground text-sm">
+        <p>No geographic data available</p>
+        <p className="text-xs mt-1">Location is detected on signup via IP geolocation</p>
       </div>
     )
   }

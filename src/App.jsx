@@ -1,0 +1,312 @@
+import { useState, useEffect } from 'react'
+
+// Hooks
+import { useAuth } from '@/hooks/useAuth'
+import { useEncryption } from '@/hooks/useEncryption'
+import { useGmail } from '@/hooks/useGmail'
+import { useServices } from '@/hooks/useServices'
+import { useGuides } from '@/hooks/useGuides'
+
+// Components
+import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
+import { LoginModal } from '@/components/auth/LoginModal'
+import { EncryptionModal } from '@/components/encryption/EncryptionModal'
+import { FaqModal } from '@/components/faq/FaqModal'
+import { PrivacyModal } from '@/components/privacy/PrivacyModal'
+import { GuideModal } from '@/components/guides/GuideModal'
+import { ConnectGmail } from '@/components/scanner/ConnectGmail'
+import { ScannerControls } from '@/components/scanner/ScannerControls'
+import { ScanProgress } from '@/components/scanner/ScanProgress'
+import { ServicesList } from '@/components/services/ServicesList'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+function App() {
+  const [showFaq, setShowFaq] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme')
+    return saved ? saved === 'dark' : true // Default to dark
+  })
+
+  // Apply theme to document
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode)
+    localStorage.setItem('theme', darkMode ? 'dark' : 'light')
+  }, [darkMode])
+
+  // Auth hook
+  const {
+    authUser,
+    showLoginModal,
+    setShowLoginModal,
+    loginEmail,
+    setLoginEmail,
+    otpCode,
+    setOtpCode,
+    loginStep,
+    loginLoading,
+    loginError,
+    handleRequestOtp,
+    handleVerifyOtp,
+    handleLogout,
+    resetLoginForm,
+  } = useAuth()
+
+  // Encryption hook
+  const {
+    encryptionKey,
+    encryptionStatus,
+    setEncryptionStatus,
+    showEncryptionModal,
+    setShowEncryptionModal,
+    encryptionPassword,
+    setEncryptionPassword,
+    confirmPassword,
+    setConfirmPassword,
+    recoveryKey,
+    recoveryKeyInput,
+    setRecoveryKeyInput,
+    encryptionError,
+    setEncryptionError,
+    encryptionLoading,
+    checkEncryptionStatus,
+    saveEncryptedServices,
+    handleSetupEncryption,
+    handleUnlockEncryption,
+    handleRecoveryUnlock,
+    handleResetEncryption,
+    handleDismissRecoveryKey,
+    clearEncryptionState,
+  } = useEncryption()
+
+  // Gmail hook
+  const {
+    isGmailConnected,
+    tokenClient,
+    accessToken,
+    handleConnectGmail,
+    handleDisconnectGmail,
+  } = useGmail()
+
+  // Services hook
+  const {
+    services,
+    setServices,
+    isLoading,
+    scanProgress,
+    error,
+    spamToEnd,
+    setSpamToEnd,
+    inactiveYears,
+    setInactiveYears,
+    hideInactive,
+    setHideInactive,
+    searchQuery,
+    setSearchQuery,
+    scanGmail,
+    toggleMigrated,
+    clearServices,
+    exportServices,
+    getSortedServices,
+    migratedCount,
+    totalCount,
+    // Selection
+    selectedIds,
+    handleSelect,
+    clearSelection,
+    selectAll,
+    setMigratedBulk,
+    setIgnoredBulk,
+    setImportantBulk,
+  } = useServices(encryptionKey, encryptionStatus, saveEncryptedServices)
+
+  // Guides hook
+  const {
+    communityGuides,
+    editingGuide,
+    isEditingGuide,
+    setIsEditingGuide,
+    guideSaving,
+    guideError,
+    handleSaveGuide,
+    openGuide,
+    closeGuide,
+    cancelEditing,
+    updateEditingGuide,
+  } = useGuides(authUser)
+
+  // Check encryption status after successful login
+  const handleVerifyOtpWithEncryption = async (e) => {
+    const success = await handleVerifyOtp(e)
+    if (success) {
+      checkEncryptionStatus()
+    }
+  }
+
+  // Extended logout to clear encryption state
+  const handleLogoutWithCleanup = async () => {
+    await handleLogout()
+    clearEncryptionState()
+  }
+
+  const sortedServices = getSortedServices()
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header
+        authUser={authUser}
+        onLogin={() => setShowLoginModal(true)}
+        onLogout={handleLogoutWithCleanup}
+        darkMode={darkMode}
+        onToggleTheme={() => setDarkMode(!darkMode)}
+      />
+
+      <main className="flex-1 max-w-3xl mx-auto px-4 py-6 w-full">
+        {!isGmailConnected && services.length === 0 ? (
+          <ConnectGmail
+            authUser={authUser}
+            tokenClient={tokenClient}
+            onConnect={handleConnectGmail}
+          />
+        ) : (
+          <div className="space-y-6">
+            <ScannerControls
+              isGmailConnected={isGmailConnected}
+              isLoading={isLoading}
+              hasServices={services.length > 0}
+              tokenClient={tokenClient}
+              onScan={() => scanGmail(accessToken)}
+              onConnect={handleConnectGmail}
+              onDisconnect={handleDisconnectGmail}
+              onExport={exportServices}
+              onClear={clearServices}
+            />
+
+            {isLoading && <ScanProgress scanProgress={scanProgress} />}
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  <strong>Error:</strong> {error}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {services.length > 0 && (
+              <ServicesList
+                services={sortedServices}
+                communityGuides={communityGuides}
+                migratedCount={migratedCount}
+                totalCount={totalCount}
+                spamToEnd={spamToEnd}
+                setSpamToEnd={setSpamToEnd}
+                hideInactive={hideInactive}
+                setHideInactive={setHideInactive}
+                inactiveYears={inactiveYears}
+                setInactiveYears={setInactiveYears}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                onToggleMigrated={toggleMigrated}
+                onViewGuide={(service) => openGuide(service, false)}
+                onAddGuide={(service) => openGuide(service, true)}
+                // Selection
+                selectedIds={selectedIds}
+                onSelect={handleSelect}
+                onClearSelection={clearSelection}
+                onSelectAll={selectAll}
+                onSetMigratedBulk={setMigratedBulk}
+                onSetIgnoredBulk={setIgnoredBulk}
+                onSetImportantBulk={setImportantBulk}
+              />
+            )}
+
+            {!isLoading && services.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">
+                  Click "Scan Inbox" to discover services linked to your email.
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This may take a minute for large inboxes.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      <Footer
+        showEncrypted={authUser && encryptionStatus === 'unlocked'}
+        onShowFaq={() => setShowFaq(true)}
+        onShowPrivacy={() => setShowPrivacy(true)}
+      />
+
+      {/* Fixed progress indicator */}
+      {totalCount > 0 && (
+        <div className="fixed bottom-4 right-4 bg-card border rounded-full px-3 py-1.5 shadow-lg text-sm font-medium">
+          {migratedCount} / {totalCount}
+        </div>
+      )}
+
+      {/* Modals */}
+      <LoginModal
+        open={showLoginModal}
+        onOpenChange={setShowLoginModal}
+        loginStep={loginStep}
+        loginEmail={loginEmail}
+        setLoginEmail={setLoginEmail}
+        otpCode={otpCode}
+        setOtpCode={setOtpCode}
+        loginLoading={loginLoading}
+        loginError={loginError}
+        onRequestOtp={handleRequestOtp}
+        onVerifyOtp={handleVerifyOtpWithEncryption}
+        onBack={resetLoginForm}
+      />
+
+      <EncryptionModal
+        open={showEncryptionModal}
+        encryptionStatus={encryptionStatus}
+        encryptionPassword={encryptionPassword}
+        setEncryptionPassword={setEncryptionPassword}
+        confirmPassword={confirmPassword}
+        setConfirmPassword={setConfirmPassword}
+        recoveryKey={recoveryKey}
+        recoveryKeyInput={recoveryKeyInput}
+        setRecoveryKeyInput={setRecoveryKeyInput}
+        encryptionError={encryptionError}
+        encryptionLoading={encryptionLoading}
+        onSetup={(e) => handleSetupEncryption(e, services, setServices)}
+        onUnlock={(e) => handleUnlockEncryption(e, setServices)}
+        onRecoveryUnlock={handleRecoveryUnlock}
+        onReset={() => handleResetEncryption(setServices)}
+        onDismissRecoveryKey={handleDismissRecoveryKey}
+        onUseRecoveryKey={() => setEncryptionStatus('use_recovery_key')}
+        onConfirmReset={() => setEncryptionStatus('confirm_reset')}
+        onBackToPassword={() => {
+          setEncryptionStatus('needs_unlock')
+          setRecoveryKeyInput('')
+          setEncryptionError('')
+        }}
+      />
+
+      <FaqModal open={showFaq} onOpenChange={setShowFaq} />
+      <PrivacyModal open={showPrivacy} onOpenChange={setShowPrivacy} />
+
+      <GuideModal
+        editingGuide={editingGuide}
+        isEditingGuide={isEditingGuide}
+        guideSaving={guideSaving}
+        guideError={guideError}
+        authUser={authUser}
+        onClose={closeGuide}
+        onEdit={() => setIsEditingGuide(true)}
+        onSave={handleSaveGuide}
+        onCancel={cancelEditing}
+        onUpdateGuide={updateEditingGuide}
+      />
+    </div>
+  )
+}
+
+export default App

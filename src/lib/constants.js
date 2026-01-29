@@ -1,5 +1,5 @@
 // Google OAuth configuration
-export const CLIENT_ID = '391663511394-10nohrbr5es05blfs53q124c80srril4.apps.googleusercontent.com'
+export const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 export const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 
 // Patterns to search for account-related emails

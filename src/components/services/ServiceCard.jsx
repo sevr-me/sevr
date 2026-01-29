@@ -55,9 +55,15 @@ export function ServiceCard({
           </Badge>
         )}
 
-        <span className="text-sm text-muted-foreground">
+        <a
+          href={`https://mail.google.com/mail/u/0/#search/from%3A${encodeURIComponent(service.domain)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+        >
           {service.domain}
-        </span>
+        </a>
 
         {service.category !== 'Other' && (
           <Badge variant="outline" className="text-xs h-5 px-1.5">

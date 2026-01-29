@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getGuideByDomain, getAllGuides, upsertGuide } from '../db.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { broadcastActivity } from '../auth.js';
 
 const router = Router();
 
@@ -82,6 +83,13 @@ router.put('/:domain', authenticate, (req, res) => {
 
     const now = new Date().toISOString();
     upsertGuide.run(domain, contentToStore, urlToStore, req.userId, now);
+
+    // Broadcast guide edit activity
+    broadcastActivity('guide_edit', {
+      domain,
+      email: req.userEmail,
+      timestamp: now,
+    });
 
     res.json({
       domain,

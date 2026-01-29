@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 
-export function Header({ authUser, onLogin, onLogout, darkMode, onToggleTheme }) {
+export function Header({ authUser, onLogin, onLogout, onAdmin, darkMode, onToggleTheme }) {
   return (
     <header className="border-b bg-background">
       <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between w-full">
@@ -26,6 +26,11 @@ export function Header({ authUser, onLogin, onLogout, darkMode, onToggleTheme })
           {authUser ? (
             <>
               <span className="text-sm text-muted-foreground hidden sm:inline">{authUser.email}</span>
+              {authUser.isAdmin && (
+                <Button variant="outline" size="sm" onClick={onAdmin}>
+                  Admin
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={onLogout}>
                 Logout
               </Button>

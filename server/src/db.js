@@ -115,6 +115,11 @@ if (!userColumns.includes('recovery_verifier')) {
   console.log('Added recovery_verifier column to users table');
 }
 
+if (!userColumns.includes('is_admin')) {
+  db.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`);
+  console.log('Added is_admin column to users table');
+}
+
 // User queries
 export const createUser = db.prepare(`
   INSERT INTO users (id, email, created_at) VALUES (?, ?, ?)
@@ -254,6 +259,30 @@ export const upsertEncryptedData = db.prepare(`
 
 export const deleteEncryptedData = db.prepare(`
   DELETE FROM encrypted_data WHERE user_id = ?
+`);
+
+// Admin queries
+export const getUserCount = db.prepare(`
+  SELECT COUNT(*) as count FROM users
+`);
+
+export const getGuideCount = db.prepare(`
+  SELECT COUNT(*) as count FROM domain_guides
+`);
+
+export const getAllUsersWithStats = db.prepare(`
+  SELECT
+    u.id,
+    u.email,
+    u.created_at,
+    u.is_admin,
+    (SELECT COUNT(*) FROM services WHERE user_id = u.id) as service_count
+  FROM users u
+  ORDER BY u.created_at DESC
+`);
+
+export const setUserAdmin = db.prepare(`
+  UPDATE users SET is_admin = ? WHERE id = ?
 `);
 
 export default db;

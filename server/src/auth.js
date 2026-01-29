@@ -14,11 +14,32 @@ import {
   getRefreshToken,
   revokeRefreshToken,
   revokeAllUserTokens,
+  setUserAdmin,
 } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '30d';
+
+// Check if email is in admin list
+export function isAdminEmail(email) {
+  const adminEmails = process.env.ADMIN_EMAILS || '';
+  const adminList = adminEmails.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+  return adminList.includes(email.toLowerCase());
+}
+
+// Activity broadcast callback - set by admin routes
+let activityBroadcaster = null;
+
+export function setActivityBroadcaster(fn) {
+  activityBroadcaster = fn;
+}
+
+export function broadcastActivity(type, data) {
+  if (activityBroadcaster) {
+    activityBroadcaster(type, data);
+  }
+}
 
 // Generate a 6-digit OTP
 export function generateOtp() {
@@ -92,11 +113,25 @@ export function verifyOtp(email, code) {
 
   // Get or create user
   let user = getUserByEmail.get(normalizedEmail);
+  let isNewUser = false;
 
   if (!user) {
+    isNewUser = true;
     const userId = uuidv4();
     createUser.run(userId, normalizedEmail, now);
     user = getUserById.get(userId);
+  }
+
+  // Check if user should be admin
+  const shouldBeAdmin = isAdminEmail(normalizedEmail);
+  if (shouldBeAdmin && !user.is_admin) {
+    setUserAdmin.run(1, user.id);
+    user = getUserById.get(user.id);
+  }
+
+  // Broadcast new signup
+  if (isNewUser) {
+    broadcastActivity('signup', { email: normalizedEmail, timestamp: now });
   }
 
   // Generate tokens
@@ -107,14 +142,14 @@ export function verifyOtp(email, code) {
     success: true,
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email },
+    user: { id: user.id, email: user.email, isAdmin: !!user.is_admin },
   };
 }
 
 // Generate access token
 export function generateAccessToken(user) {
   return jwt.sign(
-    { userId: user.id, email: user.email },
+    { userId: user.id, email: user.email, isAdmin: !!user.is_admin },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
@@ -153,7 +188,7 @@ export function refreshAccessToken(refreshToken) {
   return {
     success: true,
     accessToken,
-    user: { id: user.id, email: user.email },
+    user: { id: user.id, email: user.email, isAdmin: !!user.is_admin },
   };
 }
 
@@ -168,7 +203,7 @@ export function logout(refreshToken) {
 export function verifyAccessToken(token) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    return { success: true, userId: decoded.userId, email: decoded.email };
+    return { success: true, userId: decoded.userId, email: decoded.email, isAdmin: !!decoded.isAdmin };
   } catch (error) {
     return { success: false, error: 'Invalid token' };
   }

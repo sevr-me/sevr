@@ -21,6 +21,7 @@ router.get('/me', (req, res) => {
       id: user.id,
       email: user.email,
       createdAt: user.created_at,
+      isAdmin: !!user.is_admin,
     });
   } catch (error) {
     console.error('Error fetching user:', error);

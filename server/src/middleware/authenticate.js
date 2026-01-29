@@ -16,5 +16,6 @@ export function authenticate(req, res, next) {
 
   req.userId = result.userId;
   req.userEmail = result.email;
+  req.isAdmin = result.isAdmin;
   next();
 }

@@ -6,6 +6,7 @@ import { useEncryption } from '@/hooks/useEncryption'
 import { useGmail } from '@/hooks/useGmail'
 import { useServices } from '@/hooks/useServices'
 import { useGuides } from '@/hooks/useGuides'
+import { useAdmin } from '@/hooks/useAdmin'
 
 // Components
 import { Header } from '@/components/layout/Header'
@@ -15,6 +16,7 @@ import { EncryptionModal } from '@/components/encryption/EncryptionModal'
 import { FaqModal } from '@/components/faq/FaqModal'
 import { PrivacyModal } from '@/components/privacy/PrivacyModal'
 import { GuideModal } from '@/components/guides/GuideModal'
+import { AdminDashboard } from '@/components/admin/AdminDashboard'
 import { ConnectGmail } from '@/components/scanner/ConnectGmail'
 import { ScannerControls } from '@/components/scanner/ScannerControls'
 import { ScanProgress } from '@/components/scanner/ScanProgress'
@@ -24,6 +26,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 function App() {
   const [showFaq, setShowFaq] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showAdmin, setShowAdmin] = useState(false)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme')
     return saved ? saved === 'dark' : true // Default to dark
@@ -136,6 +139,16 @@ function App() {
     updateEditingGuide,
   } = useGuides(authUser)
 
+  // Admin hook
+  const {
+    stats: adminStats,
+    users: adminUsers,
+    activities: adminActivities,
+    loading: adminLoading,
+    refresh: adminRefresh,
+    connectActivityFeed,
+  } = useAdmin(authUser)
+
   // Check encryption status after successful login
   const handleVerifyOtpWithEncryption = async (e) => {
     const success = await handleVerifyOtp(e)
@@ -158,6 +171,7 @@ function App() {
         authUser={authUser}
         onLogin={() => setShowLoginModal(true)}
         onLogout={handleLogoutWithCleanup}
+        onAdmin={() => setShowAdmin(true)}
         darkMode={darkMode}
         onToggleTheme={() => setDarkMode(!darkMode)}
       />
@@ -304,6 +318,17 @@ function App() {
         onSave={handleSaveGuide}
         onCancel={cancelEditing}
         onUpdateGuide={updateEditingGuide}
+      />
+
+      <AdminDashboard
+        open={showAdmin}
+        onOpenChange={setShowAdmin}
+        stats={adminStats}
+        users={adminUsers}
+        activities={adminActivities}
+        loading={adminLoading}
+        onRefresh={adminRefresh}
+        onConnect={connectActivityFeed}
       />
     </div>
   )

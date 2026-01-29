@@ -9,6 +9,7 @@ import servicesRoutes from './routes/services.js';
 import userRoutes from './routes/user.js';
 import guidesRoutes from './routes/guides.js';
 import encryptedRoutes from './routes/encrypted.js';
+import adminRoutes from './routes/admin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -30,6 +31,7 @@ app.use('/api/services', servicesRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/guides', guidesRoutes);
 app.use('/api/encrypted', encryptedRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

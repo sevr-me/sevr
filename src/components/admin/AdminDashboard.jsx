@@ -69,6 +69,7 @@ export function AdminDashboard({
               usersOverTime={usersOverTime}
               usersByCountry={usersByCountry}
               loading={loading}
+              onRefresh={onRefresh}
             />
           )}
           {activeTab === 'users' && (
@@ -83,7 +84,7 @@ export function AdminDashboard({
   )
 }
 
-function OverviewTab({ stats, usersOverTime, usersByCountry, loading }) {
+function OverviewTab({ stats, usersOverTime, usersByCountry, loading, onRefresh }) {
   if (loading) {
     return <div className="text-center py-8 text-muted-foreground">Loading...</div>
   }
@@ -135,7 +136,7 @@ function OverviewTab({ stats, usersOverTime, usersByCountry, loading }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <WorldMap data={usersByCountry} />
+          <WorldMap data={usersByCountry} onRefresh={onRefresh} />
         </CardContent>
       </Card>
     </div>

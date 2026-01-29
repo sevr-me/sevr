@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
-import { getUserCount, getGuideCount, getAllUsersWithStats, getUsersOverTime, getUsersByCountry } from '../db.js';
+import { getUserCount, getGuideCount, getAllUsersWithStats, getUsersOverTime, getUsersByCountry, setAllUsersCountry } from '../db.js';
 import { setActivityBroadcaster } from '../auth.js';
 
 const router = Router();
@@ -81,6 +81,21 @@ router.get('/users-by-country', (req, res) => {
   } catch (error) {
     console.error('Error fetching users by country:', error);
     res.status(500).json({ error: 'Failed to fetch data' });
+  }
+});
+
+// POST /api/admin/backfill-countries - Set country for users without one
+router.post('/backfill-countries', (req, res) => {
+  try {
+    const { country } = req.body;
+    if (!country || typeof country !== 'string' || country.length !== 2) {
+      return res.status(400).json({ error: 'Valid 2-letter country code required' });
+    }
+    const result = setAllUsersCountry.run(country.toUpperCase());
+    res.json({ updated: result.changes });
+  } catch (error) {
+    console.error('Error backfilling countries:', error);
+    res.status(500).json({ error: 'Failed to backfill countries' });
   }
 });
 

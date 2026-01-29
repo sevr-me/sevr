@@ -70,12 +70,52 @@ const COUNTRY_NAMES = {
   HU: "Hungary", GR: "Greece",
 }
 
-export function WorldMap({ data }) {
+import { useState } from 'react'
+import { api } from '@/lib/api'
+
+export function WorldMap({ data, onRefresh }) {
+  const [backfilling, setBackfilling] = useState(false)
+
+  const handleBackfill = async (country) => {
+    setBackfilling(true)
+    try {
+      const response = await api('/api/admin/backfill-countries', {
+        method: 'POST',
+        body: JSON.stringify({ country }),
+      })
+      if (response.ok) {
+        onRefresh?.()
+      }
+    } catch (err) {
+      console.error('Backfill failed:', err)
+    } finally {
+      setBackfilling(false)
+    }
+  }
+
   if (!data || data.length === 0) {
     return (
-      <div className="h-32 flex flex-col items-center justify-center text-muted-foreground text-sm">
-        <p>No geographic data available</p>
-        <p className="text-xs mt-1">Location is detected on signup via IP geolocation</p>
+      <div className="h-32 flex flex-col items-center justify-center text-muted-foreground text-sm gap-3">
+        <div className="text-center">
+          <p>No geographic data available</p>
+          <p className="text-xs mt-1">Location is detected on signup via IP geolocation</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleBackfill('US')}
+            disabled={backfilling}
+            className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50"
+          >
+            {backfilling ? 'Setting...' : 'Set all to US'}
+          </button>
+          <button
+            onClick={() => handleBackfill('GB')}
+            disabled={backfilling}
+            className="px-3 py-1 text-xs bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
+          >
+            Set all to UK
+          </button>
+        </div>
       </div>
     )
   }

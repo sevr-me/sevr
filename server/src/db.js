@@ -294,6 +294,10 @@ export const setUserCountry = db.prepare(`
   UPDATE users SET country_code = ? WHERE id = ?
 `);
 
+export const setAllUsersCountry = db.prepare(`
+  UPDATE users SET country_code = ? WHERE country_code IS NULL
+`);
+
 export const getUsersOverTime = db.prepare(`
   SELECT DATE(created_at) as date, COUNT(*) as count
   FROM users

@@ -7,17 +7,10 @@ export function UsersChart({ data }) {
     )
   }
 
-  // Handle single data point - show as a simple stat
-  if (data.length === 1) {
-    return (
-      <div className="h-48 flex flex-col items-center justify-center">
-        <div className="text-4xl font-bold">{data[0].count}</div>
-        <div className="text-sm text-muted-foreground mt-1">
-          users as of {formatDate(data[0].date)}
-        </div>
-      </div>
-    )
-  }
+  // For single data point, pad with a zero start point to show growth
+  const chartData = data.length === 1
+    ? [{ date: getPreviousDay(data[0].date), count: 0 }, ...data]
+    : data
 
   // Calculate dimensions
   const width = 500
@@ -27,12 +20,12 @@ export function UsersChart({ data }) {
   const chartHeight = height - padding.top - padding.bottom
 
   // Calculate scales
-  const maxCount = Math.max(...data.map(d => d.count))
+  const maxCount = Math.max(...chartData.map(d => d.count), 1)
   const minCount = 0
 
   // Create points for the line
-  const points = data.map((d, i) => {
-    const x = padding.left + (i / (data.length - 1 || 1)) * chartWidth
+  const points = chartData.map((d, i) => {
+    const x = padding.left + (i / (chartData.length - 1 || 1)) * chartWidth
     const y = padding.top + chartHeight - ((d.count - minCount) / (maxCount - minCount || 1)) * chartHeight
     return { x, y, ...d }
   })
@@ -47,7 +40,7 @@ export function UsersChart({ data }) {
   const yTicks = [0, Math.round(maxCount / 2), maxCount]
 
   // X-axis labels (show first, middle, last)
-  const xLabels = data.length <= 3 ? data : [data[0], data[Math.floor(data.length / 2)], data[data.length - 1]]
+  const xLabels = chartData.length <= 3 ? chartData : [chartData[0], chartData[Math.floor(chartData.length / 2)], chartData[chartData.length - 1]]
 
   return (
     <div className="w-full overflow-x-auto">
@@ -109,8 +102,8 @@ export function UsersChart({ data }) {
 
         {/* X-axis labels */}
         {xLabels.map((d, i) => {
-          const idx = data.indexOf(d)
-          const x = padding.left + (idx / (data.length - 1 || 1)) * chartWidth
+          const idx = chartData.indexOf(d)
+          const x = padding.left + (idx / (chartData.length - 1 || 1)) * chartWidth
           return (
             <text
               key={i}
@@ -131,4 +124,10 @@ export function UsersChart({ data }) {
 function formatDate(dateStr) {
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function getPreviousDay(dateStr) {
+  const date = new Date(dateStr)
+  date.setDate(date.getDate() - 1)
+  return date.toISOString().split('T')[0]
 }

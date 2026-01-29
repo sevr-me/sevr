@@ -11,6 +11,7 @@ A privacy-first tool to discover all services linked to your Gmail account. Scan
 - **Cross-Device Sync**: Sign in to sync your progress across devices
 - **Recovery Options**: Recovery key backup and password reset options
 - **Self-Hostable**: Deploy on your own server, Raspberry Pi, or cloud
+- **Admin Dashboard**: Monitor user signups and activity in real-time
 
 ## How It Works
 
@@ -89,6 +90,7 @@ The app will be available at http://localhost:3001
 | `JWT_EXPIRES_IN` | No | Access token expiry (default: 15m) |
 | `REFRESH_EXPIRES_IN` | No | Refresh token expiry (default: 30d) |
 | `DATABASE_PATH` | No | SQLite database path |
+| `ADMIN_EMAILS` | No | Comma-separated admin emails (e.g., `admin@example.com,other@example.com`) |
 | `SMTP_*` | No | Email settings for OTP (see .env.example) |
 
 ### Raspberry Pi
@@ -139,6 +141,29 @@ yourdomain.com {
 - Your encryption password
 
 See the in-app Security FAQ for more details.
+
+## Admin Dashboard
+
+Admins can access a dashboard to monitor user activity and platform stats.
+
+### Setup
+
+1. Add admin email addresses to `ADMIN_EMAILS` in your server `.env`:
+   ```
+   ADMIN_EMAILS=admin@example.com,another@example.com
+   ```
+
+2. Restart the server
+
+3. Log in with an admin email — the "Admin" button will appear in the header
+
+### Features
+
+- **Overview**: Total user count and community guide count
+- **Users**: List of all users with join date, service count, and admin status
+- **Activity**: Real-time feed of signups and guide edits via Server-Sent Events (SSE)
+
+Admin status is granted on login when the user's email matches `ADMIN_EMAILS`. The dashboard only shows aggregate stats and activity — admins cannot access individual user data or encrypted content.
 
 ## Limitations
 

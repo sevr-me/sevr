@@ -36,7 +36,7 @@ function fuzzyMatch(pattern, text) {
 
 export function useServices(encryptionKey, encryptionStatus, saveEncryptedServices) {
   const [services, setServices] = useState(() => {
-    const saved = localStorage.getItem('emailMigrator_services')
+    const saved = localStorage.getItem('sevr-services')
     return saved ? JSON.parse(saved) : []
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -53,7 +53,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
 
   // Save to localStorage and optionally to encrypted server storage
   const saveServices = useCallback((newServices) => {
-    localStorage.setItem('emailMigrator_services', JSON.stringify(newServices))
+    localStorage.setItem('sevr-services', JSON.stringify(newServices))
 
     if (encryptionKey && encryptionStatus === 'unlocked' && newServices.length > 0) {
       saveEncryptedServices(encryptionKey, newServices)
@@ -309,7 +309,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
   const clearServices = useCallback(() => {
     if (confirm('Clear all discovered services? This cannot be undone.')) {
       setServices([])
-      localStorage.removeItem('emailMigrator_services')
+      localStorage.removeItem('sevr-services')
     }
   }, [])
 

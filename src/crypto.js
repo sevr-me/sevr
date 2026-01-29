@@ -101,7 +101,7 @@ export async function decrypt(key, encryptedData) {
 // This is a hash of a known string encrypted with the key
 export async function createVerifier(key) {
   const encoder = new TextEncoder()
-  const data = encoder.encode('email-migrator-verify')
+  const data = encoder.encode('sevr-verify')
 
   const encryptedBuffer = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: new Uint8Array(12) }, // Fixed IV for verifier
@@ -123,7 +123,7 @@ export async function verifyPassword(key, verifier) {
     )
 
     const decoder = new TextDecoder()
-    return decoder.decode(decryptedBuffer) === 'email-migrator-verify'
+    return decoder.decode(decryptedBuffer) === 'sevr-verify'
   } catch {
     return false
   }

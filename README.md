@@ -1,4 +1,4 @@
-# Email Migrator
+# SEVR 
 
 A privacy-first tool to discover all services linked to your Gmail account. Scan happens entirely in your browser — your emails never leave your device. Optional end-to-end encrypted cloud sync.
 
@@ -98,7 +98,7 @@ Works on Pi 3/4/5 (ARM64). Build directly on the Pi or use multi-arch images:
 ```bash
 # On a faster machine, build multi-arch
 docker buildx build --platform linux/amd64,linux/arm64 \
-  -t yourusername/email-migrator:latest --push .
+  -t yourusername/sevr:latest --push .
 
 # On the Pi
 docker compose up -d
@@ -158,7 +158,7 @@ cd server && npm run dev
 
 # Build for production
 npm run build
-docker build -t email-migrator .
+docker build -t sevr .
 ```
 
 ### Project Structure

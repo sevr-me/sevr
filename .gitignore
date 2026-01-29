@@ -142,5 +142,5 @@ vite.config.ts.timestamp-*
 server/data/*
 !server/data/.gitkeep
 
-# Claude Code settings
+# Local settings
 .claude/

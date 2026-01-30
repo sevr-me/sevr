@@ -14,6 +14,7 @@ router.get('/', (req, res) => {
       guidesMap[guide.domain] = {
         content: guide.guide_content,
         settingsUrl: guide.settings_url,
+        noChangePossible: !!guide.no_change_possible,
         updatedAt: guide.updated_at,
         updatedBy: guide.updated_by_email,
       };
@@ -39,6 +40,7 @@ router.get('/:domain', (req, res) => {
       domain: guide.domain,
       content: guide.guide_content,
       settingsUrl: guide.settings_url,
+      noChangePossible: !!guide.no_change_possible,
       updatedAt: guide.updated_at,
       updatedBy: guide.updated_by_email,
     });
@@ -52,9 +54,10 @@ router.get('/:domain', (req, res) => {
 router.put('/:domain', authenticate, (req, res) => {
   try {
     const { domain } = req.params;
-    const { content, settingsUrl } = req.body;
+    const { content, settingsUrl, noChangePossible } = req.body;
 
     const contentToStore = (content && typeof content === 'string') ? content.trim() : '';
+    const noChangeFlag = noChangePossible ? 1 : 0;
 
     if (contentToStore.length > 5000) {
       return res.status(400).json({ error: 'Guide content too long (max 5000 characters)' });
@@ -76,13 +79,13 @@ router.put('/:domain', authenticate, (req, res) => {
       }
     }
 
-    // Require at least content or URL
-    if (!contentToStore && !urlToStore) {
-      return res.status(400).json({ error: 'Guide content or settings URL is required' });
+    // Require at least content, URL, or noChangePossible flag
+    if (!contentToStore && !urlToStore && !noChangeFlag) {
+      return res.status(400).json({ error: 'Guide content, settings URL, or "no change possible" flag is required' });
     }
 
     const now = new Date().toISOString();
-    upsertGuide.run(domain, contentToStore, urlToStore, req.userId, now);
+    upsertGuide.run(domain, contentToStore, urlToStore, noChangeFlag, req.userId, now);
 
     // Broadcast guide edit activity
     broadcastActivity('guide_edit', {
@@ -95,6 +98,7 @@ router.put('/:domain', authenticate, (req, res) => {
       domain,
       content: contentToStore,
       settingsUrl: urlToStore,
+      noChangePossible: !!noChangeFlag,
       updatedAt: now,
       updatedBy: req.userEmail,
     });

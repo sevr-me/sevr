@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { redactEmail } from '@/lib/gmail'
@@ -47,24 +48,37 @@ export function GuideModal({
         <ScrollArea className="max-h-[50vh] pr-4">
           {isEditingGuide ? (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="settingsUrl">Settings URL</Label>
-                <Input
-                  id="settingsUrl"
-                  type="url"
-                  value={editingGuide.settingsUrl}
-                  onChange={(e) => onUpdateGuide({ settingsUrl: e.target.value })}
-                  placeholder="https://example.com/account/settings"
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="noChangePossible"
+                  checked={editingGuide.noChangePossible || false}
+                  onCheckedChange={(checked) => onUpdateGuide({ noChangePossible: checked })}
                 />
+                <Label htmlFor="noChangePossible" className="text-sm font-medium cursor-pointer">
+                  No known way to change email address
+                </Label>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="content">Instructions (Markdown)</Label>
-                <Textarea
-                  id="content"
-                  value={editingGuide.content}
-                  onChange={(e) => onUpdateGuide({ content: e.target.value })}
-                  placeholder={`Write your guide in Markdown...
+              {!editingGuide.noChangePossible && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="settingsUrl">Settings URL</Label>
+                    <Input
+                      id="settingsUrl"
+                      type="url"
+                      value={editingGuide.settingsUrl}
+                      onChange={(e) => onUpdateGuide({ settingsUrl: e.target.value })}
+                      placeholder="https://example.com/account/settings"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="content">Instructions (Markdown)</Label>
+                    <Textarea
+                      id="content"
+                      value={editingGuide.content}
+                      onChange={(e) => onUpdateGuide({ content: e.target.value })}
+                      placeholder={`Write your guide in Markdown...
 
 Example:
 ## Steps
@@ -75,14 +89,38 @@ Example:
 
 ## Notes
 - You may need to re-verify your account`}
-                  rows={12}
-                  className="font-mono text-sm"
-                />
-              </div>
+                      rows={12}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </>
+              )}
+
+              {editingGuide.noChangePossible && (
+                <div className="space-y-2">
+                  <Label htmlFor="content">Additional notes (optional)</Label>
+                  <Textarea
+                    id="content"
+                    value={editingGuide.content}
+                    onChange={(e) => onUpdateGuide({ content: e.target.value })}
+                    placeholder="Add any additional details, such as workarounds or why email change isn't possible..."
+                    rows={4}
+                    className="font-mono text-sm"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
-              {editingGuide.settingsUrl && (
+              {editingGuide.noChangePossible && (
+                <Alert variant="destructive">
+                  <AlertDescription className="font-medium">
+                    No known way to change email address for this service
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {editingGuide.settingsUrl && !editingGuide.noChangePossible && (
                 <Button asChild className="w-full">
                   <a
                     href={editingGuide.settingsUrl}
@@ -96,13 +134,15 @@ Example:
 
               {editingGuide.content ? (
                 <div className="border-t pt-4">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">Community Guide</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-3">
+                    {editingGuide.noChangePossible ? 'Notes' : 'Community Guide'}
+                  </p>
                   <div
                     className="prose prose-sm dark:prose-invert max-w-none"
                     dangerouslySetInnerHTML={{ __html: marked(editingGuide.content) }}
                   />
                 </div>
-              ) : (
+              ) : !editingGuide.noChangePossible && (
                 <div className="border-t pt-4">
                   <p className="text-muted-foreground text-sm">
                     No community guide yet. {authUser ? 'Click Edit to add one.' : 'Sign in to add one.'}

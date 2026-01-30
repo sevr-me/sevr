@@ -17,6 +17,7 @@ import {
   revokeAllUserTokens,
   setUserAdmin,
   setUserCountry,
+  isBlacklisted,
 } from './db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
@@ -117,6 +118,13 @@ function parseDuration(duration) {
 
 // Request OTP for email
 export async function requestOtp(email) {
+  // Check if email is blacklisted
+  const blacklisted = isBlacklisted.get(email.toLowerCase());
+  if (blacklisted) {
+    // Don't reveal blacklist status - just pretend it succeeded
+    return { success: true };
+  }
+
   // Clean up expired OTPs
   cleanupExpiredOtps.run(new Date().toISOString());
 

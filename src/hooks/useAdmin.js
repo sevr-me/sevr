@@ -4,11 +4,15 @@ import { api } from '@/lib/api'
 export function useAdmin(authUser) {
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
+  const [guides, setGuides] = useState([])
+  const [blacklist, setBlacklist] = useState([])
   const [activities, setActivities] = useState([])
   const [usersOverTime, setUsersOverTime] = useState([])
   const [usersByCountry, setUsersByCountry] = useState([])
+  const [onlineUsers, setOnlineUsers] = useState([])
   const [loading, setLoading] = useState(false)
   const eventSourceRef = useRef(null)
+  const heartbeatIntervalRef = useRef(null)
 
   const isAdmin = authUser?.isAdmin
 
@@ -33,6 +37,30 @@ export function useAdmin(authUser) {
       }
     } catch (err) {
       console.error('Failed to fetch admin users:', err)
+    }
+  }, [isAdmin])
+
+  const fetchGuides = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const response = await api('/api/admin/guides')
+      if (response.ok) {
+        setGuides(await response.json())
+      }
+    } catch (err) {
+      console.error('Failed to fetch admin guides:', err)
+    }
+  }, [isAdmin])
+
+  const fetchBlacklist = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const response = await api('/api/admin/blacklist')
+      if (response.ok) {
+        setBlacklist(await response.json())
+      }
+    } catch (err) {
+      console.error('Failed to fetch blacklist:', err)
     }
   }, [isAdmin])
 
@@ -62,9 +90,96 @@ export function useAdmin(authUser) {
 
   const refresh = useCallback(async () => {
     setLoading(true)
-    await Promise.all([fetchStats(), fetchUsers(), fetchUsersOverTime(), fetchUsersByCountry()])
+    await Promise.all([
+      fetchStats(),
+      fetchUsers(),
+      fetchGuides(),
+      fetchBlacklist(),
+      fetchUsersOverTime(),
+      fetchUsersByCountry(),
+    ])
     setLoading(false)
-  }, [fetchStats, fetchUsers, fetchUsersOverTime, fetchUsersByCountry])
+  }, [fetchStats, fetchUsers, fetchGuides, fetchBlacklist, fetchUsersOverTime, fetchUsersByCountry])
+
+  // Admin actions
+  const deleteGuide = useCallback(async (domain) => {
+    try {
+      const response = await api(`/api/admin/guides/${encodeURIComponent(domain)}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        await fetchGuides()
+        await fetchStats()
+        return true
+      }
+    } catch (err) {
+      console.error('Failed to delete guide:', err)
+    }
+    return false
+  }, [fetchGuides, fetchStats])
+
+  const updateGuide = useCallback(async (domain, content, settingsUrl, noChangePossible) => {
+    try {
+      const response = await api(`/api/admin/guides/${encodeURIComponent(domain)}`, {
+        method: 'PUT',
+        body: JSON.stringify({ content, settingsUrl, noChangePossible }),
+      })
+      if (response.ok) {
+        await fetchGuides()
+        return true
+      }
+    } catch (err) {
+      console.error('Failed to update guide:', err)
+    }
+    return false
+  }, [fetchGuides])
+
+  const deleteUser = useCallback(async (userId) => {
+    try {
+      const response = await api(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        await fetchUsers()
+        await fetchStats()
+        return true
+      }
+    } catch (err) {
+      console.error('Failed to delete user:', err)
+    }
+    return false
+  }, [fetchUsers, fetchStats])
+
+  const addToBlacklist = useCallback(async (email, reason) => {
+    try {
+      const response = await api('/api/admin/blacklist', {
+        method: 'POST',
+        body: JSON.stringify({ email, reason }),
+      })
+      if (response.ok) {
+        await fetchBlacklist()
+        return true
+      }
+    } catch (err) {
+      console.error('Failed to add to blacklist:', err)
+    }
+    return false
+  }, [fetchBlacklist])
+
+  const removeFromBlacklist = useCallback(async (email) => {
+    try {
+      const response = await api(`/api/admin/blacklist/${encodeURIComponent(email)}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        await fetchBlacklist()
+        return true
+      }
+    } catch (err) {
+      console.error('Failed to remove from blacklist:', err)
+    }
+    return false
+  }, [fetchBlacklist])
 
   // Connect to SSE activity feed
   const connectActivityFeed = useCallback(() => {
@@ -108,7 +223,9 @@ export function useAdmin(authUser) {
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6))
-                if (data.type !== 'connected') {
+                if (data.type === 'online_users') {
+                  setOnlineUsers(data.users || [])
+                } else if (data.type !== 'connected') {
                   setActivities(prev => [data, ...prev].slice(0, 50))
                   // Refresh stats when new signup occurs
                   if (data.type === 'signup') {
@@ -116,6 +233,10 @@ export function useAdmin(authUser) {
                     fetchUsers()
                     fetchUsersOverTime()
                     fetchUsersByCountry()
+                  }
+                  // Refresh guides when guide is edited
+                  if (data.type === 'guide_edit') {
+                    fetchGuides()
                   }
                 }
               } catch (e) {
@@ -133,7 +254,7 @@ export function useAdmin(authUser) {
     }).catch(err => {
       console.error('Activity feed connection error:', err)
     })
-  }, [isAdmin, fetchStats, fetchUsers, fetchUsersOverTime, fetchUsersByCountry])
+  }, [isAdmin, fetchStats, fetchUsers, fetchUsersOverTime, fetchUsersByCountry, fetchGuides])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -141,18 +262,30 @@ export function useAdmin(authUser) {
       if (eventSourceRef.current) {
         eventSourceRef.current.close()
       }
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current)
+      }
     }
   }, [])
 
   return {
     stats,
     users,
+    guides,
+    blacklist,
     activities,
     usersOverTime,
     usersByCountry,
+    onlineUsers,
     loading,
     refresh,
     connectActivityFeed,
     isAdmin,
+    // Actions
+    deleteGuide,
+    updateGuide,
+    deleteUser,
+    addToBlacklist,
+    removeFromBlacklist,
   }
 }

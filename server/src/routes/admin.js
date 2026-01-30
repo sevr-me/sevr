@@ -1,10 +1,68 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/authenticate.js';
 import { requireAdmin } from '../middleware/requireAdmin.js';
-import { getUserCount, getGuideCount, getAllUsersWithStats, getUsersOverTime, getUsersByCountry, setAllUsersCountry } from '../db.js';
+import {
+  getUserCount,
+  getGuideCount,
+  getAllUsersWithStats,
+  getUsersOverTime,
+  getUsersByCountry,
+  setAllUsersCountry,
+  getAllGuidesWithDetails,
+  upsertGuide,
+  deleteGuide,
+  deleteUser,
+  revokeAllUserTokens,
+  deleteEncryptedData,
+  deleteAllUserServices,
+  addToBlacklist,
+  removeFromBlacklist,
+  getAllBlacklisted,
+  getUserById,
+} from '../db.js';
 import { setActivityBroadcaster } from '../auth.js';
 
 const router = Router();
+
+// Track online users (email -> last seen timestamp)
+const onlineUsers = new Map();
+const ONLINE_TIMEOUT = 60000; // 60 seconds
+
+// Clean up stale users and broadcast updates
+function cleanupOnlineUsers() {
+  const now = Date.now();
+  let changed = false;
+  for (const [email, lastSeen] of onlineUsers) {
+    if (now - lastSeen > ONLINE_TIMEOUT) {
+      onlineUsers.delete(email);
+      changed = true;
+    }
+  }
+  if (changed) {
+    broadcastOnlineUsers();
+  }
+}
+
+// Run cleanup every 30 seconds
+setInterval(cleanupOnlineUsers, 30000);
+
+// Broadcast online users to admin clients
+function broadcastOnlineUsers() {
+  const users = Array.from(onlineUsers.keys());
+  const event = JSON.stringify({ type: 'online_users', users, timestamp: new Date().toISOString() });
+  for (const client of activityClients) {
+    client.write(`data: ${event}\n\n`);
+  }
+}
+
+// Export function to register user heartbeat (called from user routes)
+export function registerUserHeartbeat(email) {
+  const wasOnline = onlineUsers.has(email);
+  onlineUsers.set(email, Date.now());
+  if (!wasOnline) {
+    broadcastOnlineUsers();
+  }
+}
 
 // All routes require authentication and admin
 router.use(authenticate);
@@ -99,6 +157,149 @@ router.post('/backfill-countries', (req, res) => {
   }
 });
 
+// GET /api/admin/guides - List all guides
+router.get('/guides', (req, res) => {
+  try {
+    const guides = getAllGuidesWithDetails.all();
+    res.json(guides.map(g => ({
+      domain: g.domain,
+      content: g.guide_content,
+      settingsUrl: g.settings_url,
+      noChangePossible: !!g.no_change_possible,
+      updatedAt: g.updated_at,
+      updatedBy: g.updated_by_email,
+    })));
+  } catch (error) {
+    console.error('Error fetching guides:', error);
+    res.status(500).json({ error: 'Failed to fetch guides' });
+  }
+});
+
+// PUT /api/admin/guides/:domain - Update a guide
+router.put('/guides/:domain', (req, res) => {
+  try {
+    const { domain } = req.params;
+    const { content, settingsUrl, noChangePossible } = req.body;
+
+    const contentToStore = (content && typeof content === 'string') ? content.trim() : '';
+    const noChangeFlag = noChangePossible ? 1 : 0;
+
+    let urlToStore = null;
+    if (settingsUrl && typeof settingsUrl === 'string' && settingsUrl.trim()) {
+      let url = settingsUrl.trim();
+      if (!url.match(/^https?:\/\//i)) {
+        url = 'https://' + url;
+      }
+      try {
+        new URL(url);
+        urlToStore = url;
+      } catch {
+        return res.status(400).json({ error: 'Invalid settings URL' });
+      }
+    }
+
+    if (!contentToStore && !urlToStore && !noChangeFlag) {
+      return res.status(400).json({ error: 'Guide content, settings URL, or "no change possible" flag is required' });
+    }
+
+    const now = new Date().toISOString();
+    upsertGuide.run(domain, contentToStore, urlToStore, noChangeFlag, req.userId, now);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating guide:', error);
+    res.status(500).json({ error: 'Failed to update guide' });
+  }
+});
+
+// DELETE /api/admin/guides/:domain - Delete a guide
+router.delete('/guides/:domain', (req, res) => {
+  try {
+    const { domain } = req.params;
+    deleteGuide.run(domain);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting guide:', error);
+    res.status(500).json({ error: 'Failed to delete guide' });
+  }
+});
+
+// DELETE /api/admin/users/:id - Delete a user account
+router.delete('/users/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = getUserById.get(id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Don't allow deleting yourself
+    if (id === req.userId) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    // Revoke all tokens, delete data, then delete user
+    revokeAllUserTokens.run(id);
+    deleteEncryptedData.run(id);
+    deleteAllUserServices.run(id);
+    deleteUser.run(id);
+
+    res.json({ success: true, email: user.email });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// GET /api/admin/blacklist - Get all blacklisted emails
+router.get('/blacklist', (req, res) => {
+  try {
+    const blacklisted = getAllBlacklisted.all();
+    res.json(blacklisted.map(b => ({
+      email: b.email,
+      reason: b.reason,
+      createdAt: b.created_at,
+      createdBy: b.created_by_email,
+    })));
+  } catch (error) {
+    console.error('Error fetching blacklist:', error);
+    res.status(500).json({ error: 'Failed to fetch blacklist' });
+  }
+});
+
+// POST /api/admin/blacklist - Add email to blacklist
+router.post('/blacklist', (req, res) => {
+  try {
+    const { email, reason } = req.body;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const now = new Date().toISOString();
+
+    addToBlacklist.run(normalizedEmail, reason || null, now, req.userId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error adding to blacklist:', error);
+    res.status(500).json({ error: 'Failed to add to blacklist' });
+  }
+});
+
+// DELETE /api/admin/blacklist/:email - Remove email from blacklist
+router.delete('/blacklist/:email', (req, res) => {
+  try {
+    const { email } = req.params;
+    removeFromBlacklist.run(email.toLowerCase());
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error removing from blacklist:', error);
+    res.status(500).json({ error: 'Failed to remove from blacklist' });
+  }
+});
+
 // GET /api/admin/activity - SSE stream
 router.get('/activity', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -108,11 +309,20 @@ router.get('/activity', (req, res) => {
   // Send initial connection message
   res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`);
 
+  // Send current online users
+  const users = Array.from(onlineUsers.keys());
+  res.write(`data: ${JSON.stringify({ type: 'online_users', users, timestamp: new Date().toISOString() })}\n\n`);
+
   activityClients.add(res);
 
   req.on('close', () => {
     activityClients.delete(res);
   });
+});
+
+// GET /api/admin/online-users - Get current online users
+router.get('/online-users', (req, res) => {
+  res.json({ users: Array.from(onlineUsers.keys()) });
 });
 
 export default router;

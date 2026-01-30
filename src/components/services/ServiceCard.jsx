@@ -97,15 +97,22 @@ export function ServiceCard({
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        {settingsUrl && (
+        {guide?.noChangePossible ? (
+          <Badge
+            className="text-xs h-7 px-2 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-0 cursor-pointer"
+            onClick={() => onViewGuide(service)}
+          >
+            Can't change
+          </Badge>
+        ) : settingsUrl ? (
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" asChild>
             <a href={settingsUrl} target="_blank" rel="noopener noreferrer">
               Change email ↗
             </a>
           </Button>
-        )}
+        ) : null}
 
-        {guide?.content ? (
+        {guide?.content || guide?.noChangePossible ? (
           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onViewGuide(service)}>
             Guide
           </Button>

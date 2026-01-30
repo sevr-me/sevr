@@ -25,7 +25,8 @@ export function useGuides(authUser) {
         method: 'PUT',
         body: JSON.stringify({
           content: editingGuide.content,
-          settingsUrl: editingGuide.settingsUrl
+          settingsUrl: editingGuide.settingsUrl,
+          noChangePossible: editingGuide.noChangePossible
         }),
       })
 
@@ -36,6 +37,7 @@ export function useGuides(authUser) {
           [editingGuide.domain]: {
             content: data.content,
             settingsUrl: data.settingsUrl,
+            noChangePossible: data.noChangePossible,
             updatedAt: data.updatedAt,
             updatedBy: data.updatedBy
           }
@@ -63,6 +65,7 @@ export function useGuides(authUser) {
       name: service.name,
       content: guide?.content || '',
       settingsUrl: guide?.settingsUrl || service.guide || '',
+      noChangePossible: guide?.noChangePossible || false,
       defaultUrl: service.guide,
       updatedAt: guide?.updatedAt,
       updatedBy: guide?.updatedBy
@@ -85,7 +88,8 @@ export function useGuides(authUser) {
       setEditingGuide(prev => ({
         ...prev,
         content: guide?.content || '',
-        settingsUrl: guide?.settingsUrl || prev?.defaultUrl || ''
+        settingsUrl: guide?.settingsUrl || prev?.defaultUrl || '',
+        noChangePossible: guide?.noChangePossible || false
       }))
     }
   }, [editingGuide, communityGuides])

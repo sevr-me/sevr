@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/authenticate.js';
 import { revokeAllTokens } from '../auth.js';
 import { getUserById, deleteUser, deleteAllUserServices } from '../db.js';
+import { registerUserHeartbeat } from './admin.js';
 
 const router = Router();
 
@@ -45,6 +46,17 @@ router.delete('/me', (req, res) => {
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
+// POST /api/user/heartbeat - Register user as online
+router.post('/heartbeat', (req, res) => {
+  try {
+    registerUserHeartbeat(req.userEmail);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error registering heartbeat:', error);
+    res.status(500).json({ error: 'Failed to register heartbeat' });
   }
 });
 

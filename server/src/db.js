@@ -97,6 +97,13 @@ try {
   // Column already exists, ignore
 }
 
+// Migration: Add no_change_possible column if it doesn't exist
+try {
+  db.exec(`ALTER TABLE domain_guides ADD COLUMN no_change_possible INTEGER DEFAULT 0`);
+} catch (err) {
+  // Column already exists, ignore
+}
+
 // Migration: Add encryption columns to users table
 const userColumns = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
 
@@ -213,26 +220,38 @@ export const deleteAllUserServices = db.prepare(`
 
 // Domain guide queries
 export const getGuideByDomain = db.prepare(`
-  SELECT dg.domain, dg.guide_content, dg.settings_url, dg.updated_at, u.email as updated_by_email
+  SELECT dg.domain, dg.guide_content, dg.settings_url, dg.no_change_possible, dg.updated_at, u.email as updated_by_email
   FROM domain_guides dg
   LEFT JOIN users u ON dg.updated_by = u.id
   WHERE dg.domain = ?
 `);
 
 export const getAllGuides = db.prepare(`
-  SELECT dg.domain, dg.guide_content, dg.settings_url, dg.updated_at, u.email as updated_by_email
+  SELECT dg.domain, dg.guide_content, dg.settings_url, dg.no_change_possible, dg.updated_at, u.email as updated_by_email
   FROM domain_guides dg
   LEFT JOIN users u ON dg.updated_by = u.id
 `);
 
 export const upsertGuide = db.prepare(`
-  INSERT INTO domain_guides (domain, guide_content, settings_url, updated_by, updated_at)
-  VALUES (?, ?, ?, ?, ?)
+  INSERT INTO domain_guides (domain, guide_content, settings_url, no_change_possible, updated_by, updated_at)
+  VALUES (?, ?, ?, ?, ?, ?)
   ON CONFLICT(domain) DO UPDATE SET
     guide_content = excluded.guide_content,
     settings_url = excluded.settings_url,
+    no_change_possible = excluded.no_change_possible,
     updated_by = excluded.updated_by,
     updated_at = excluded.updated_at
+`);
+
+export const deleteGuide = db.prepare(`
+  DELETE FROM domain_guides WHERE domain = ?
+`);
+
+export const getAllGuidesWithDetails = db.prepare(`
+  SELECT dg.domain, dg.guide_content, dg.settings_url, dg.no_change_possible, dg.updated_at, dg.updated_by, u.email as updated_by_email
+  FROM domain_guides dg
+  LEFT JOIN users u ON dg.updated_by = u.id
+  ORDER BY dg.updated_at DESC
 `);
 
 // User encryption setup
@@ -311,6 +330,37 @@ export const getUsersByCountry = db.prepare(`
   WHERE country_code IS NOT NULL
   GROUP BY country_code
   ORDER BY count DESC
+`);
+
+// Blacklist table for banned emails
+db.exec(`
+  CREATE TABLE IF NOT EXISTS blacklist (
+    email TEXT PRIMARY KEY,
+    reason TEXT,
+    created_at TEXT NOT NULL,
+    created_by TEXT,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+  );
+`);
+
+export const addToBlacklist = db.prepare(`
+  INSERT OR REPLACE INTO blacklist (email, reason, created_at, created_by)
+  VALUES (?, ?, ?, ?)
+`);
+
+export const removeFromBlacklist = db.prepare(`
+  DELETE FROM blacklist WHERE email = ?
+`);
+
+export const isBlacklisted = db.prepare(`
+  SELECT * FROM blacklist WHERE email = ?
+`);
+
+export const getAllBlacklisted = db.prepare(`
+  SELECT b.email, b.reason, b.created_at, u.email as created_by_email
+  FROM blacklist b
+  LEFT JOIN users u ON b.created_by = u.id
+  ORDER BY b.created_at DESC
 `);
 
 export default db;

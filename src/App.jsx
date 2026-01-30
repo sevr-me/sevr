@@ -143,13 +143,49 @@ function App() {
   const {
     stats: adminStats,
     users: adminUsers,
+    guides: adminGuides,
+    blacklist: adminBlacklist,
     activities: adminActivities,
     usersOverTime: adminUsersOverTime,
     usersByCountry: adminUsersByCountry,
+    onlineUsers: adminOnlineUsers,
     loading: adminLoading,
     refresh: adminRefresh,
     connectActivityFeed,
+    deleteGuide: adminDeleteGuide,
+    updateGuide: adminUpdateGuide,
+    deleteUser: adminDeleteUser,
+    addToBlacklist: adminAddToBlacklist,
+    removeFromBlacklist: adminRemoveFromBlacklist,
   } = useAdmin(authUser)
+
+  // Send heartbeat to track online status
+  useEffect(() => {
+    if (!authUser) return
+
+    const sendHeartbeat = async () => {
+      try {
+        const response = await fetch('/api/user/heartbeat', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            'Content-Type': 'application/json',
+          },
+        })
+        if (!response.ok) {
+          console.error('Heartbeat failed')
+        }
+      } catch (err) {
+        console.error('Heartbeat error:', err)
+      }
+    }
+
+    // Send immediately and then every 30 seconds
+    sendHeartbeat()
+    const interval = setInterval(sendHeartbeat, 30000)
+
+    return () => clearInterval(interval)
+  }, [authUser])
 
   // Check encryption status after successful login
   const handleVerifyOtpWithEncryption = async (e) => {
@@ -327,12 +363,21 @@ function App() {
         onOpenChange={setShowAdmin}
         stats={adminStats}
         users={adminUsers}
+        guides={adminGuides}
+        blacklist={adminBlacklist}
         activities={adminActivities}
         usersOverTime={adminUsersOverTime}
         usersByCountry={adminUsersByCountry}
+        onlineUsers={adminOnlineUsers}
         loading={adminLoading}
         onRefresh={adminRefresh}
         onConnect={connectActivityFeed}
+        onDeleteGuide={adminDeleteGuide}
+        onUpdateGuide={adminUpdateGuide}
+        onDeleteUser={adminDeleteUser}
+        onAddToBlacklist={adminAddToBlacklist}
+        onRemoveFromBlacklist={adminRemoveFromBlacklist}
+        currentUserEmail={authUser?.email}
       />
     </div>
   )

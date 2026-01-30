@@ -1,114 +1,170 @@
-# SEVR 
+# SEVR
 
-A privacy-first tool to discover all services linked to your Gmail account. Scan happens entirely in your browser — your emails never leave your device. Optional end-to-end encrypted cloud sync.
+A privacy-first tool to discover all services linked to your Gmail account. Scanning happens entirely in your browser — your emails never leave your device.
 
 ## Features
 
 - **Gmail Scanning**: Discovers services from verification, welcome, and password reset emails
-- **Smart Sorting**: Sort by frequency, filter spam/marketing senders, hide inactive services
-- **Community Guides**: User-contributed guides for changing email on each service (Markdown)
-- **End-to-End Encryption**: Your service list is encrypted before leaving your browser
-- **Cross-Device Sync**: Sign in to sync your progress across devices
-- **Recovery Options**: Recovery key backup and password reset options
-- **Self-Hostable**: Deploy on your own server, Raspberry Pi, or cloud
-- **Admin Dashboard**: Monitor user signups and activity in real-time
+- **Privacy First**: Gmail API calls go directly from your browser to Google — emails never touch the server
+- **End-to-End Encryption**: Your service list is encrypted in your browser before syncing
+- **Community Guides**: User-contributed guides for changing email on each service
+- **Admin Dashboard**: Monitor signups, user stats, and activity in real-time
 
-## How It Works
+## Requirements
 
-1. Authenticate with Google (read-only access to email headers only)
-2. The app scans your inbox locally for account-related emails
-3. Results are sorted by frequency with spam detection
-4. Optionally sign in to encrypt and sync your data
+- Node.js 18+
+- A Google Cloud project with Gmail API enabled
+- A domain with HTTPS (for production)
+- Optional: [Resend](https://resend.com) account for sending OTP emails
 
-**Your emails never touch any server.** Gmail API calls go directly from your browser to Google.
+## Google Cloud Setup
 
-## Quick Start (Development)
+Before running the app, you need to configure Google OAuth:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a new project
+
+2. Enable the Gmail API:
+   - Navigate to "APIs & Services" → "Library"
+   - Search for "Gmail API" and click "Enable"
+
+3. Configure OAuth consent screen:
+   - Go to "APIs & Services" → "OAuth consent screen"
+   - Select "External" user type
+   - Fill in app name and support email
+   - Add scope: `https://www.googleapis.com/auth/gmail.readonly`
+   - Add your email as a test user
+
+4. Create OAuth credentials:
+   - Go to "APIs & Services" → "Credentials"
+   - Click "Create Credentials" → "OAuth client ID"
+   - Select "Web application"
+   - Add authorized JavaScript origins:
+     - `http://localhost:5173` (development)
+     - `https://yourdomain.com` (production)
+   - Save the **Client ID**
+
+5. Add the Client ID to your environment:
+   ```
+   VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   ```
+
+## Development
 
 ```bash
-# Frontend
+# Install frontend dependencies
 npm install
+
+# Install backend dependencies
+cd server && npm install && cd ..
+
+# Start frontend (terminal 1)
 npm run dev
 
-# Backend (in separate terminal)
-cd server
-npm install
-npm run dev
+# Start backend (terminal 2)
+cd server && npm run dev
 ```
 
 Open http://localhost:5173
 
-## Google Cloud Setup
-
-### 1. Create Google Cloud Project
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project
-3. Enable the **Gmail API**:
-   - Go to "APIs & Services" → "Library"
-   - Search for "Gmail API" → Click "Enable"
-
-### 2. Configure OAuth Consent Screen
-
-1. Go to "APIs & Services" → "OAuth consent screen"
-2. Select "External" user type
-3. Fill in required fields (app name, support email)
-4. Add scope: `https://www.googleapis.com/auth/gmail.readonly`
-5. Add test users (your Gmail address)
-
-### 3. Create OAuth Credentials
-
-1. Go to "APIs & Services" → "Credentials"
-2. Click "Create Credentials" → "OAuth client ID"
-3. Application type: **Web application**
-4. Add Authorized JavaScript origins:
-   - `http://localhost:5173` (Vite dev)
-   - `http://localhost:3001` (Docker)
-   - Your production domain
-5. Copy the **Client ID** and update `src/App.jsx`
+OTP codes are logged to the server console when `RESEND_API_KEY` is not set.
 
 ## Production Deployment
 
-### Docker (Recommended)
+### 1. Clone and install
 
 ```bash
-# Create environment file
+git clone https://github.com/yourusername/sevr.git
+cd sevr
+
+# Install dependencies
+npm install
+cd server && npm install && cd ..
+```
+
+### 2. Configure environment
+
+Create the environment files:
+
+```bash
 cp .env.example .env
-# Edit .env and set JWT_SECRET (required!)
-openssl rand -hex 32  # Generate a secure secret
-
-# Build and run
-docker compose up -d
+cp server/.env.example server/.env
 ```
 
-The app will be available at http://localhost:3001
-
-### Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `JWT_SECRET` | Yes | Secret for signing tokens (min 32 chars) |
-| `JWT_EXPIRES_IN` | No | Access token expiry (default: 15m) |
-| `REFRESH_EXPIRES_IN` | No | Refresh token expiry (default: 30d) |
-| `DATABASE_PATH` | No | SQLite database path |
-| `ADMIN_EMAILS` | No | Comma-separated admin emails (e.g., `admin@example.com,other@example.com`) |
-| `SMTP_*` | No | Email settings for OTP (see .env.example) |
-
-### Raspberry Pi
-
-Works on Pi 3/4/5 (ARM64). Build directly on the Pi or use multi-arch images:
+Edit `.env` (frontend):
 
 ```bash
-# On a faster machine, build multi-arch
-docker buildx build --platform linux/amd64,linux/arm64 \
-  -t yourusername/sevr:latest --push .
-
-# On the Pi
-docker compose up -d
+VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 ```
 
-### Reverse Proxy (HTTPS)
+Edit `server/.env` (backend):
 
-Put nginx, Caddy, or Traefik in front for SSL. Example Caddy config:
+```bash
+# Required: Generate a secure secret
+# Run: openssl rand -hex 32
+JWT_SECRET=your-64-character-random-string
+
+# Optional: Admin users (comma-separated emails)
+ADMIN_EMAILS=admin@example.com
+
+# Optional: Email delivery via Resend
+# Without this, OTP codes are logged to console
+RESEND_API_KEY=re_your_api_key
+EMAIL_FROM=noreply@yourdomain.com
+```
+
+### 3. Build the frontend
+
+```bash
+npm run build
+```
+
+This creates a `dist/` folder with the static frontend files.
+
+### 4. Start the server
+
+For production, use a process manager like PM2:
+
+```bash
+npm install -g pm2
+
+cd server
+NODE_ENV=production pm2 start src/index.js --name sevr
+```
+
+Or with systemd, create `/etc/systemd/system/sevr.service`:
+
+```ini
+[Unit]
+Description=SEVR
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/path/to/sevr/server
+ExecStart=/usr/bin/node src/index.js
+Restart=on-failure
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable sevr
+sudo systemctl start sevr
+```
+
+The server runs on port 3001 by default.
+
+### 5. Configure reverse proxy
+
+Use Caddy, nginx, or another reverse proxy for HTTPS.
+
+**Caddy** (automatic HTTPS):
 
 ```
 yourdomain.com {
@@ -116,92 +172,89 @@ yourdomain.com {
 }
 ```
 
-## Security
+**nginx**:
 
-### Gmail Access
-- Read-only access to email headers (sender, subject)
-- Token stays in your browser, never sent to backend
-- API calls go directly to Gmail, not through our server
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
 
-### End-to-End Encryption
-- Password-derived key using PBKDF2 (100,000 iterations)
-- Data encrypted with AES-256-GCM before upload
-- Server stores only encrypted blobs — cannot read your data
-- Recovery key generated for account recovery
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
 
-### What's Stored on Server
-- Your email address (for login)
-- Encrypted service list (unreadable without your password)
-- Encryption salt and verifier
-- Community guides (shared, not encrypted)
+    location / {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
 
-### What's NOT Stored
-- Your Gmail access token
-- Your emails or email content
-- Your encryption password
+### 6. Update Google OAuth
 
-See the in-app Security FAQ for more details.
+Add your production domain to the authorized JavaScript origins in Google Cloud Console.
+
+## Environment Variables
+
+**Frontend** (`.env`):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `VITE_GOOGLE_CLIENT_ID` | Yes | Google OAuth Client ID |
+
+**Backend** (`server/.env`):
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `JWT_SECRET` | Yes | - | Secret for signing tokens. Use `openssl rand -hex 32` |
+| `PORT` | No | 3001 | Server port |
+| `DATABASE_PATH` | No | `./data/sevr.db` | SQLite database location |
+| `JWT_EXPIRES_IN` | No | 15m | Access token expiry |
+| `REFRESH_EXPIRES_IN` | No | 30d | Refresh token expiry |
+| `ADMIN_EMAILS` | No | - | Comma-separated admin emails |
+| `RESEND_API_KEY` | No | - | Resend API key for sending OTP emails |
+| `EMAIL_FROM` | No | - | From address for OTP emails |
 
 ## Admin Dashboard
 
-Admins can access a dashboard to monitor user activity and platform stats.
+Users with emails listed in `ADMIN_EMAILS` see an "Admin" button in the header.
 
-### Setup
+The dashboard shows:
+- Total users and community guides count
+- User growth chart over time
+- Geographic distribution of users
+- Real-time activity feed (signups, guide edits)
 
-1. Add admin email addresses to `ADMIN_EMAILS` in your server `.env`:
-   ```
-   ADMIN_EMAILS=admin@example.com,another@example.com
-   ```
+Admins cannot access individual user data or encrypted content.
 
-2. Restart the server
+## Security
 
-3. Log in with an admin email — the "Admin" button will appear in the header
+**Gmail Access**
+- Read-only access to email metadata (sender, subject)
+- OAuth token stays in browser, never sent to backend
+- API calls go directly to Google
 
-### Features
+**End-to-End Encryption**
+- Key derived from password using PBKDF2 (100,000 iterations)
+- Data encrypted with AES-256-GCM before upload
+- Server stores only encrypted blobs
+- Recovery key for account recovery
 
-- **Overview**: Total user count and community guide count
-- **Users**: List of all users with join date, service count, and admin status
-- **Activity**: Real-time feed of signups and guide edits via Server-Sent Events (SSE)
+**Server Storage**
+- Email address (for login)
+- Encrypted service list (unreadable without password)
+- Community guides (shared, unencrypted)
 
-Admin status is granted on login when the user's email matches `ADMIN_EMAILS`. The dashboard only shows aggregate stats and activity — admins cannot access individual user data or encrypted content.
-
-## Limitations
-
-- Only scans emails matching common account patterns
-- May miss services without standard verification emails
-- Oldest emails may not be indexed by Gmail search
-- Requires JavaScript enabled
-
-## Development
-
-```bash
-# Frontend (Vite)
-npm run dev
-
-# Backend (Express)
-cd server && npm run dev
-
-# Build for production
-npm run build
-docker build -t sevr .
-```
-
-### Project Structure
-
-```
-├── src/                  # React frontend
-│   ├── App.jsx          # Main application
-│   ├── crypto.js        # E2E encryption utilities
-│   └── App.css          # Styles
-├── server/              # Express backend
-│   └── src/
-│       ├── index.js     # Server entry
-│       ├── db.js        # SQLite database
-│       ├── auth.js      # Authentication
-│       └── routes/      # API routes
-├── Dockerfile           # Production build
-└── docker-compose.yml   # Docker deployment
-```
+**Not Stored**
+- Gmail tokens
+- Email content
+- Encryption passwords
 
 ## License
 

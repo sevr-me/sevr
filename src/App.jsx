@@ -38,6 +38,14 @@ function App() {
     localStorage.setItem('theme', darkMode ? 'dark' : 'light')
   }, [darkMode])
 
+  // Track anonymous page view (no cookies, privacy-friendly)
+  useEffect(() => {
+    // Only track once per session using sessionStorage
+    if (sessionStorage.getItem('tracked')) return
+    sessionStorage.setItem('tracked', '1')
+    fetch('/api/track', { method: 'POST' }).catch(() => {})
+  }, [])
+
   // Auth hook
   const {
     authUser,

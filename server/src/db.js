@@ -343,6 +343,18 @@ db.exec(`
   );
 `);
 
+// Anonymous visitor tracking (privacy-friendly, no cookies)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS page_views (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    ip_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_page_views_date ON page_views(date);
+  CREATE INDEX IF NOT EXISTS idx_page_views_date_ip ON page_views(date, ip_hash);
+`);
+
 export const addToBlacklist = db.prepare(`
   INSERT OR REPLACE INTO blacklist (email, reason, created_at, created_by)
   VALUES (?, ?, ?, ?)
@@ -361,6 +373,42 @@ export const getAllBlacklisted = db.prepare(`
   FROM blacklist b
   LEFT JOIN users u ON b.created_by = u.id
   ORDER BY b.created_at DESC
+`);
+
+// Page view tracking
+export const recordPageView = db.prepare(`
+  INSERT INTO page_views (date, ip_hash, created_at) VALUES (?, ?, ?)
+`);
+
+export const getPageViewStats = db.prepare(`
+  SELECT
+    date,
+    COUNT(*) as views,
+    COUNT(DISTINCT ip_hash) as unique_visitors
+  FROM page_views
+  WHERE date >= ?
+  GROUP BY date
+  ORDER BY date DESC
+`);
+
+export const getTodayStats = db.prepare(`
+  SELECT
+    COUNT(*) as views,
+    COUNT(DISTINCT ip_hash) as unique_visitors
+  FROM page_views
+  WHERE date = ?
+`);
+
+export const getTotalStats = db.prepare(`
+  SELECT
+    COUNT(*) as total_views,
+    COUNT(DISTINCT ip_hash) as total_unique_visitors
+  FROM page_views
+`);
+
+// Cleanup old page views (keep last 90 days)
+export const cleanupOldPageViews = db.prepare(`
+  DELETE FROM page_views WHERE date < ?
 `);
 
 export default db;

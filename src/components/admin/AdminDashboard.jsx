@@ -165,6 +165,30 @@ function OverviewTab({ stats, usersOverTime, usersByCountry, onlineUsers, loadin
             <div className="text-3xl font-bold">{stats?.guideCount ?? 0}</div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Today's Visitors
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats?.todayVisitors ?? 0}</div>
+            <p className="text-xs text-muted-foreground">{stats?.todayViews ?? 0} page views</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              All-Time Visitors
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{stats?.totalVisitors ?? 0}</div>
+            <p className="text-xs text-muted-foreground">{stats?.totalViews ?? 0} page views</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Users over time chart */}

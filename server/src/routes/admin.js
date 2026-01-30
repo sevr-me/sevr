@@ -19,6 +19,9 @@ import {
   removeFromBlacklist,
   getAllBlacklisted,
   getUserById,
+  getPageViewStats,
+  getTodayStats,
+  getTotalStats,
 } from '../db.js';
 import { setActivityBroadcaster } from '../auth.js';
 
@@ -87,10 +90,37 @@ router.get('/stats', (req, res) => {
   try {
     const userCount = getUserCount.get().count;
     const guideCount = getGuideCount.get().count;
-    res.json({ userCount, guideCount });
+    const today = new Date().toISOString().split('T')[0];
+    const todayStats = getTodayStats.get(today) || { views: 0, unique_visitors: 0 };
+    const totalStats = getTotalStats.get() || { total_views: 0, total_unique_visitors: 0 };
+    res.json({
+      userCount,
+      guideCount,
+      todayViews: todayStats.views,
+      todayVisitors: todayStats.unique_visitors,
+      totalViews: totalStats.total_views,
+      totalVisitors: totalStats.total_unique_visitors,
+    });
   } catch (error) {
     console.error('Error fetching admin stats:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// GET /api/admin/visitors - Get visitor stats over time
+router.get('/visitors', (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const stats = getPageViewStats.all(since);
+    res.json(stats.map(row => ({
+      date: row.date,
+      views: row.views,
+      visitors: row.unique_visitors,
+    })));
+  } catch (error) {
+    console.error('Error fetching visitor stats:', error);
+    res.status(500).json({ error: 'Failed to fetch visitor stats' });
   }
 });
 

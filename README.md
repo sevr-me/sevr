@@ -242,7 +242,17 @@ server {
 }
 ```
 
-### 6. Update Google OAuth
+### 6. Redeployment
+
+To pull updates and redeploy:
+
+```bash
+./deploy.sh
+```
+
+This pulls from git, reinstalls dependencies, rebuilds the frontend, and restarts PM2.
+
+### 7. Update Google OAuth
 
 Add your production domain to the authorized JavaScript origins in Google Cloud Console.
 

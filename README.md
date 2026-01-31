@@ -160,9 +160,55 @@ sudo systemctl start sevr
 
 The server runs on port 3001 by default.
 
+### Docker Deployment (Raspberry Pi / Self-hosted)
+
+For running on a Raspberry Pi or any machine on your internal network:
+
+#### 1. Create a Cloudflare Tunnel
+
+1. Go to [Cloudflare Zero Trust](https://one.dash.cloudflare.com/)
+2. Navigate to **Networks** → **Tunnels**
+3. Click **Create a tunnel** → Select **Cloudflared**
+4. Name your tunnel (e.g., "sevr")
+5. Copy the tunnel token (starts with `eyJ...`)
+6. Configure a public hostname:
+   - Subdomain: `sevr` (or your choice)
+   - Domain: Select your Cloudflare domain
+   - Service: `http://app:3001`
+
+#### 2. Configure environment
+
+Create a `.env` file in the project root:
+
+```bash
+# Required
+JWT_SECRET=your-64-character-random-string
+CLOUDFLARE_TUNNEL_TOKEN=eyJ...your-tunnel-token
+
+# Optional: Email delivery via Resend
+RESEND_API_KEY=re_your_api_key
+EMAIL_FROM=noreply@yourdomain.com
+```
+
+#### 3. Build and run
+
+```bash
+# Build for your architecture (arm64 for Raspberry Pi 4/5)
+docker compose build
+
+# Run with Cloudflare Tunnel
+docker compose --profile tunnel up -d
+```
+
+The `--profile tunnel` flag enables the cloudflared service. Without it, only the app runs (useful for local development or if using a different reverse proxy).
+
+#### 4. Update Google OAuth
+
+Add your tunnel hostname (e.g., `https://sevr.yourdomain.com`) to the authorized JavaScript origins in Google Cloud Console.
+
 ### 5. Configure reverse proxy
 
-Use Caddy, nginx, or another reverse proxy for HTTPS.
+Alternatively, use Caddy, nginx, or another reverse proxy for HTTPS.
 
 **Caddy** (automatic HTTPS):
 
@@ -220,6 +266,12 @@ Add your production domain to the authorized JavaScript origins in Google Cloud 
 | `ADMIN_EMAILS` | No | - | Comma-separated admin emails |
 | `RESEND_API_KEY` | No | - | Resend API key for sending OTP emails |
 | `EMAIL_FROM` | No | - | From address for OTP emails |
+
+**Docker** (`.env` in project root):
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `CLOUDFLARE_TUNNEL_TOKEN` | For tunnel | Token from Cloudflare Zero Trust dashboard |
 
 ## Admin Dashboard
 

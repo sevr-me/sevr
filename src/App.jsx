@@ -96,6 +96,7 @@ function App() {
     isGmailConnected,
     tokenClient,
     accessToken,
+    gmailEmail,
     handleConnectGmail,
     handleDisconnectGmail,
   } = useGmail()
@@ -257,6 +258,7 @@ function App() {
               <ServicesList
                 services={sortedServices}
                 communityGuides={communityGuides}
+                gmailEmail={gmailEmail}
                 migratedCount={migratedCount}
                 totalCount={totalCount}
                 spamToEnd={spamToEnd}

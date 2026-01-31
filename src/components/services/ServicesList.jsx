@@ -8,6 +8,7 @@ import { FilterControls } from './FilterControls'
 export function ServicesList({
   services,
   communityGuides,
+  gmailEmail,
   migratedCount,
   totalCount,
   spamToEnd,
@@ -36,9 +37,14 @@ export function ServicesList({
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-xl font-semibold">
-          Discovered Services ({totalCount})
-        </h2>
+        <div>
+          <h2 className="text-xl font-semibold">
+            Discovered Services ({totalCount})
+          </h2>
+          {gmailEmail && (
+            <p className="text-sm text-muted-foreground">from {gmailEmail}</p>
+          )}
+        </div>
 
         <FilterControls
           spamToEnd={spamToEnd}

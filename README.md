@@ -1,4 +1,10 @@
-# SEVR
+```
+   _____ ________    ______
+  / ___// ____/ |  / / __ \
+  \__ \/ __/  | | / / /_/ /
+ ___/ / /___  | |/ / _, _/
+/____/_____/  |___/_/ |_|
+```
 
 A privacy-first tool to discover all services linked to your Gmail account. Scanning happens entirely in your browser — your emails never leave your device.
 

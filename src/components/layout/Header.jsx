@@ -5,7 +5,7 @@ export function Header({ authUser, onLogin, onLogout, onAdmin, darkMode, onToggl
     <header className="border-b bg-background">
       <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between w-full">
         <div>
-          <h1 className="text-2xl font-bold">Sevr</h1>
+          <h1 className="text-2xl font-black italic tracking-tight bg-foreground text-background px-2 py-0.5 rounded">SEVR</h1>
           <p className="text-sm text-muted-foreground">
             Find every account linked to your Gmail before you leave.
           </p>

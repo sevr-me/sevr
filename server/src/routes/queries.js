@@ -13,7 +13,15 @@ router.get('/', optionalAuthenticate, (req, res) => {
     } else {
       queries = getApprovedSearchQueries.all();
     }
-    res.json(queries);
+    // Transform to camelCase for frontend consistency
+    res.json(queries.map(q => ({
+      id: q.id,
+      query: q.query,
+      addedAt: q.added_at,
+      addedBy: q.added_by_email,
+      approved: !!q.approved,
+      hitCount: q.hit_count || 0,
+    })));
   } catch (err) {
     console.error('Failed to fetch search queries:', err);
     res.status(500).json({ error: 'Failed to fetch search queries' });

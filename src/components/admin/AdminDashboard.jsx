@@ -699,7 +699,7 @@ function QueriesTab({ queries, loading, onDeleteQuery, onApproveQuery }) {
                   <code className="text-xs bg-muted px-1 py-0.5 rounded">{query.query}</code>
                 </td>
                 <td className="py-2 text-right font-mono text-muted-foreground">
-                  {query.hitCount?.toLocaleString() || 0}
+                  {Number(query.hitCount || 0).toLocaleString()}
                 </td>
                 <td className="py-2 text-muted-foreground truncate max-w-[120px]">
                   {query.addedBy || 'System'}

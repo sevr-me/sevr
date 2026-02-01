@@ -18,6 +18,11 @@ export function ServiceCard({
   const handleRowClick = (e) => {
     // Don't select if clicking on buttons or links
     if (e.target.closest('button') || e.target.closest('a')) return
+    // Prevent text selection when shift-clicking
+    if (e.shiftKey) {
+      e.preventDefault()
+      window.getSelection()?.removeAllRanges()
+    }
     onSelect(service.id, e.shiftKey)
   }
 

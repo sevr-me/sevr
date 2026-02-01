@@ -49,6 +49,13 @@ export function ConnectGmail({ authUser, tokenClient, onConnect }) {
       {!tokenClient && (
         <p className="text-sm text-muted-foreground">Loading Google authentication...</p>
       )}
+
+      <p className="text-sm text-muted-foreground">
+        By connecting, you agree to our{' '}
+        <a href="/privacy" className="underline hover:text-foreground">
+          Privacy Policy
+        </a>
+      </p>
     </div>
   )
 }

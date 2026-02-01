@@ -24,6 +24,7 @@ import {
   getTotalStats,
   getAllSearchQueries,
   deleteSearchQuery,
+  approveSearchQuery,
 } from '../db.js';
 import { setActivityBroadcaster } from '../auth.js';
 
@@ -332,7 +333,7 @@ router.delete('/blacklist/:email', (req, res) => {
   }
 });
 
-// GET /api/admin/queries - Get all search queries
+// GET /api/admin/queries - Get all search queries (including pending)
 router.get('/queries', (req, res) => {
   try {
     const queries = getAllSearchQueries.all();
@@ -341,10 +342,27 @@ router.get('/queries', (req, res) => {
       query: q.query,
       addedAt: q.added_at,
       addedBy: q.added_by_email,
+      approved: !!q.approved,
+      hitCount: q.hit_count || 0,
     })));
   } catch (error) {
     console.error('Error fetching queries:', error);
     res.status(500).json({ error: 'Failed to fetch queries' });
+  }
+});
+
+// POST /api/admin/queries/:id/approve - Approve a search query
+router.post('/queries/:id/approve', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = approveSearchQuery.run(id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Query not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error approving query:', error);
+    res.status(500).json({ error: 'Failed to approve query' });
   }
 });
 

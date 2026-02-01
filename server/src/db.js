@@ -418,9 +418,23 @@ db.exec(`
     query TEXT UNIQUE NOT NULL,
     added_by TEXT,
     added_at TEXT NOT NULL,
+    approved INTEGER DEFAULT 0,
+    hit_count INTEGER DEFAULT 0,
     FOREIGN KEY (added_by) REFERENCES users(id) ON DELETE SET NULL
   );
 `);
+
+// Migration: Add approved and hit_count columns if they don't exist
+try {
+  db.exec(`ALTER TABLE search_queries ADD COLUMN approved INTEGER DEFAULT 0`);
+} catch (err) {
+  // Column already exists
+}
+try {
+  db.exec(`ALTER TABLE search_queries ADD COLUMN hit_count INTEGER DEFAULT 0`);
+} catch (err) {
+  // Column already exists
+}
 
 // Insert default queries if table is empty
 const queryCount = db.prepare('SELECT COUNT(*) as count FROM search_queries').get();
@@ -437,26 +451,53 @@ if (queryCount.count === 0) {
     'subject:"confirm your account"',
     'subject:"verify your account"',
   ];
-  const insertQuery = db.prepare('INSERT INTO search_queries (query, added_at) VALUES (?, ?)');
+  const insertQuery = db.prepare('INSERT INTO search_queries (query, added_at, approved) VALUES (?, ?, 1)');
   const now = new Date().toISOString();
   for (const q of defaultQueries) {
     insertQuery.run(q, now);
   }
 }
 
+// Approve all existing queries that have no approved status set
+db.exec(`UPDATE search_queries SET approved = 1 WHERE approved = 0 AND added_by IS NULL`);
+
 export const getAllSearchQueries = db.prepare(`
-  SELECT sq.id, sq.query, sq.added_at, u.email as added_by_email
+  SELECT sq.id, sq.query, sq.added_at, sq.approved, sq.hit_count, u.email as added_by_email
   FROM search_queries sq
   LEFT JOIN users u ON sq.added_by = u.id
   ORDER BY sq.id ASC
 `);
 
+export const getApprovedSearchQueries = db.prepare(`
+  SELECT sq.id, sq.query, sq.added_at, sq.approved, sq.hit_count, u.email as added_by_email
+  FROM search_queries sq
+  LEFT JOIN users u ON sq.added_by = u.id
+  WHERE sq.approved = 1
+  ORDER BY sq.id ASC
+`);
+
+export const getUserSearchQueries = db.prepare(`
+  SELECT sq.id, sq.query, sq.added_at, sq.approved, sq.hit_count, u.email as added_by_email
+  FROM search_queries sq
+  LEFT JOIN users u ON sq.added_by = u.id
+  WHERE sq.approved = 1 OR sq.added_by = ?
+  ORDER BY sq.id ASC
+`);
+
 export const addSearchQuery = db.prepare(`
-  INSERT INTO search_queries (query, added_by, added_at) VALUES (?, ?, ?)
+  INSERT INTO search_queries (query, added_by, added_at, approved) VALUES (?, ?, ?, 0)
 `);
 
 export const deleteSearchQuery = db.prepare(`
   DELETE FROM search_queries WHERE id = ?
+`);
+
+export const approveSearchQuery = db.prepare(`
+  UPDATE search_queries SET approved = 1 WHERE id = ?
+`);
+
+export const incrementQueryHitCount = db.prepare(`
+  UPDATE search_queries SET hit_count = hit_count + ? WHERE id = ?
 `);
 
 export default db;

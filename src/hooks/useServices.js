@@ -33,7 +33,7 @@ function fuzzyMatch(pattern, text) {
   return patternIdx === pattern.length ? score : -1
 }
 
-export function useServices(encryptionKey, encryptionStatus, saveEncryptedServices, searchQueries = []) {
+export function useServices(encryptionKey, encryptionStatus, saveEncryptedServices, searchQueries = [], trackHits = null) {
   const [services, setServices] = useState(() => {
     const saved = localStorage.getItem('sevr-services')
     return saved ? JSON.parse(saved) : []
@@ -83,10 +83,14 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     setScanProgress({ current: 0, total: searchQueries.length, status: 'Starting scan...' })
 
     const foundServices = new Map()
+    const queryHits = new Map() // Track hits per query
 
     try {
       for (let i = 0; i < searchQueries.length; i++) {
-        const query = searchQueries[i]
+        const queryObj = searchQueries[i]
+        const query = queryObj.query || queryObj // Support both object and string formats
+        const queryId = queryObj.id
+
         setScanProgress({
           current: i + 1,
           total: searchQueries.length,
@@ -104,6 +108,11 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
 
         const searchData = await searchResponse.json()
         const messages = searchData.messages || []
+
+        // Track hits for this query
+        if (queryId && messages.length > 0) {
+          queryHits.set(queryId, (queryHits.get(queryId) || 0) + messages.length)
+        }
 
         for (let j = 0; j < messages.length; j += 10) {
           const batch = messages.slice(j, j + 10)
@@ -213,13 +222,19 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
       setServices(mergedServices)
       saveServices(mergedServices)
 
+      // Track query hits
+      if (trackHits && queryHits.size > 0) {
+        const hits = Array.from(queryHits.entries()).map(([id, count]) => ({ id, count }))
+        trackHits(hits)
+      }
+
       setScanProgress({ current: searchQueries.length, total: searchQueries.length, status: 'Scan complete!' })
     } catch (err) {
       setError(err.message)
     } finally {
       setIsLoading(false)
     }
-  }, [services, saveServices, searchQueries])
+  }, [services, saveServices, searchQueries, trackHits])
 
   const toggleMigrated = useCallback((serviceId) => {
     setServices(prev => {

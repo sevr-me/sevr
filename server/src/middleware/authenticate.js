@@ -19,3 +19,23 @@ export function authenticate(req, res, next) {
   req.isAdmin = result.isAdmin;
   next();
 }
+
+// Optional authentication - doesn't fail if no token provided
+export function optionalAuthenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.slice(7);
+  const result = verifyAccessToken(token);
+
+  if (result.success) {
+    req.userId = result.userId;
+    req.userEmail = result.email;
+    req.isAdmin = result.isAdmin;
+  }
+
+  next();
+}

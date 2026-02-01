@@ -108,6 +108,7 @@ function App() {
   const {
     queries: searchQueriesList,
     queryStrings: searchQueries,
+    enabledQueries,
     loading: queriesLoading,
     error: queriesError,
     setError: setQueriesError,
@@ -117,6 +118,7 @@ function App() {
     selectNone: selectNoneQueries,
     isEnabled: isQueryEnabled,
     enabledCount: enabledQueryCount,
+    trackHits: trackQueryHits,
   } = useSearchQueries()
 
   // Services hook
@@ -149,7 +151,7 @@ function App() {
     setMigratedBulk,
     setIgnoredBulk,
     setImportantBulk,
-  } = useServices(encryptionKey, encryptionStatus, saveEncryptedServices, searchQueries)
+  } = useServices(encryptionKey, encryptionStatus, saveEncryptedServices, enabledQueries, trackQueryHits)
 
   // Guides hook
   const {
@@ -186,6 +188,7 @@ function App() {
     addToBlacklist: adminAddToBlacklist,
     removeFromBlacklist: adminRemoveFromBlacklist,
     deleteQuery: adminDeleteQuery,
+    approveQuery: adminApproveQuery,
   } = useAdmin(authUser)
 
   // Send heartbeat to track online status
@@ -428,6 +431,7 @@ function App() {
         onAddToBlacklist={adminAddToBlacklist}
         onRemoveFromBlacklist={adminRemoveFromBlacklist}
         onDeleteQuery={adminDeleteQuery}
+        onApproveQuery={adminApproveQuery}
         currentUserEmail={authUser?.email}
       />
     </div>

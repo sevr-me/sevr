@@ -32,6 +32,7 @@ export function AdminDashboard({
   onAddToBlacklist,
   onRemoveFromBlacklist,
   onDeleteQuery,
+  onApproveQuery,
   currentUserEmail,
 }) {
   const [activeTab, setActiveTab] = useState('overview')
@@ -109,6 +110,7 @@ export function AdminDashboard({
               queries={queries}
               loading={loading}
               onDeleteQuery={onDeleteQuery}
+              onApproveQuery={onApproveQuery}
             />
           )}
           {activeTab === 'blacklist' && (
@@ -607,7 +609,7 @@ function BlacklistTab({ blacklist, loading, onAddToBlacklist, onRemoveFromBlackl
   )
 }
 
-function QueriesTab({ queries, loading, onDeleteQuery }) {
+function QueriesTab({ queries, loading, onDeleteQuery, onApproveQuery }) {
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
 
@@ -626,52 +628,103 @@ function QueriesTab({ queries, loading, onDeleteQuery }) {
     setConfirmDelete(null)
   }
 
+  const handleApprove = async (id) => {
+    setActionLoading(true)
+    await onApproveQuery(id)
+    setActionLoading(false)
+  }
+
+  const pendingQueries = queries.filter(q => !q.approved)
+  const approvedQueries = queries.filter(q => q.approved)
+
   return (
-    <div className="space-y-2 p-1">
-      <p className="text-sm text-muted-foreground mb-4">
-        These search phrases are used by all users to scan their inboxes.
-      </p>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="text-left py-2 font-medium">Query</th>
-            <th className="text-left py-2 font-medium">Added</th>
-            <th className="text-left py-2 font-medium">By</th>
-            <th className="text-right py-2 font-medium">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {queries.map((query) => (
-            <tr key={query.id} className="border-b">
-              <td className="py-2">
-                <code className="text-xs bg-muted px-1 py-0.5 rounded">{query.query}</code>
-              </td>
-              <td className="py-2 text-muted-foreground">
-                {formatDate(query.addedAt)}
-              </td>
-              <td className="py-2 text-muted-foreground truncate max-w-[120px]">
-                {query.addedBy || 'System'}
-              </td>
-              <td className="py-2 text-right">
-                <button
-                  onClick={() => setConfirmDelete(query)}
-                  className="text-xs text-destructive hover:underline"
-                >
-                  Delete
-                </button>
-              </td>
+    <div className="space-y-4 p-1">
+      {pendingQueries.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-amber-500">Pending Approval ({pendingQueries.length})</h3>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-muted-foreground">
+                <th className="text-left py-2 font-medium">Query</th>
+                <th className="text-left py-2 font-medium">Submitted By</th>
+                <th className="text-right py-2 font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingQueries.map((query) => (
+                <tr key={query.id} className="border-b bg-amber-500/5">
+                  <td className="py-2">
+                    <code className="text-xs bg-muted px-1 py-0.5 rounded">{query.query}</code>
+                  </td>
+                  <td className="py-2 text-muted-foreground truncate max-w-[120px]">
+                    {query.addedBy || 'Unknown'}
+                  </td>
+                  <td className="py-2 text-right space-x-2">
+                    <button
+                      onClick={() => handleApprove(query.id)}
+                      disabled={actionLoading}
+                      className="text-xs text-green-500 hover:underline"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(query)}
+                      className="text-xs text-destructive hover:underline"
+                    >
+                      Reject
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium">Approved Queries ({approvedQueries.length})</h3>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-muted-foreground">
+              <th className="text-left py-2 font-medium">Query</th>
+              <th className="text-right py-2 font-medium">Hits</th>
+              <th className="text-left py-2 font-medium">Added By</th>
+              <th className="text-right py-2 font-medium">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {approvedQueries.map((query) => (
+              <tr key={query.id} className="border-b">
+                <td className="py-2">
+                  <code className="text-xs bg-muted px-1 py-0.5 rounded">{query.query}</code>
+                </td>
+                <td className="py-2 text-right font-mono text-muted-foreground">
+                  {query.hitCount?.toLocaleString() || 0}
+                </td>
+                <td className="py-2 text-muted-foreground truncate max-w-[120px]">
+                  {query.addedBy || 'System'}
+                </td>
+                <td className="py-2 text-right">
+                  <button
+                    onClick={() => setConfirmDelete(query)}
+                    className="text-xs text-destructive hover:underline"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Delete confirmation dialog */}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-background border rounded-lg p-6 max-w-md mx-4">
-            <h3 className="font-semibold mb-2">Delete Search Query</h3>
+            <h3 className="font-semibold mb-2">{confirmDelete.approved ? 'Delete' : 'Reject'} Search Query</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Are you sure you want to delete this query?
+              Are you sure you want to {confirmDelete.approved ? 'delete' : 'reject'} this query?
               <br />
               <code className="bg-muted px-1 py-0.5 rounded mt-2 block">{confirmDelete.query}</code>
             </p>
@@ -688,7 +741,7 @@ function QueriesTab({ queries, loading, onDeleteQuery }) {
                 disabled={actionLoading}
                 className="px-3 py-1.5 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
               >
-                {actionLoading ? 'Deleting...' : 'Delete'}
+                {actionLoading ? 'Deleting...' : confirmDelete.approved ? 'Delete' : 'Reject'}
               </button>
             </div>
           </div>

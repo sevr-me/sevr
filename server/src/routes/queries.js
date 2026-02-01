@@ -1,13 +1,18 @@
 import { Router } from 'express';
-import { getAllSearchQueries, addSearchQuery, deleteSearchQuery } from '../db.js';
-import { authenticate } from '../middleware/authenticate.js';
+import { getApprovedSearchQueries, getUserSearchQueries, addSearchQuery, incrementQueryHitCount } from '../db.js';
+import { authenticate, optionalAuthenticate } from '../middleware/authenticate.js';
 
 const router = Router();
 
-// Get all search queries
-router.get('/', (req, res) => {
+// Get search queries (approved ones + user's own pending ones if logged in)
+router.get('/', optionalAuthenticate, (req, res) => {
   try {
-    const queries = getAllSearchQueries.all();
+    let queries;
+    if (req.userId) {
+      queries = getUserSearchQueries.all(req.userId);
+    } else {
+      queries = getApprovedSearchQueries.all();
+    }
     res.json(queries);
   } catch (err) {
     console.error('Failed to fetch search queries:', err);
@@ -15,7 +20,7 @@ router.get('/', (req, res) => {
   }
 });
 
-// Add a new search query (requires authentication)
+// Add a new search query (requires authentication, pending approval)
 router.post('/', authenticate, (req, res) => {
   try {
     const { query } = req.body;
@@ -37,6 +42,8 @@ router.post('/', authenticate, (req, res) => {
       query: trimmedQuery,
       added_at: now,
       added_by_email: req.userEmail,
+      approved: 0,
+      hit_count: 0,
     });
   } catch (err) {
     if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
@@ -47,20 +54,25 @@ router.post('/', authenticate, (req, res) => {
   }
 });
 
-// Delete a search query (requires authentication)
-router.delete('/:id', authenticate, (req, res) => {
+// Track hits for queries (called after scanning)
+router.post('/hits', (req, res) => {
   try {
-    const { id } = req.params;
-    const result = deleteSearchQuery.run(id);
+    const { hits } = req.body;
 
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Query not found' });
+    if (!hits || !Array.isArray(hits)) {
+      return res.status(400).json({ error: 'Hits array is required' });
+    }
+
+    for (const { id, count } of hits) {
+      if (id && count > 0) {
+        incrementQueryHitCount.run(count, id);
+      }
     }
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Failed to delete search query:', err);
-    res.status(500).json({ error: 'Failed to delete search query' });
+    console.error('Failed to track query hits:', err);
+    res.status(500).json({ error: 'Failed to track hits' });
   }
 });
 

@@ -210,6 +210,21 @@ export function useAdmin(authUser) {
     return false
   }, [fetchQueries])
 
+  const approveQuery = useCallback(async (id) => {
+    try {
+      const response = await api(`/api/admin/queries/${id}/approve`, {
+        method: 'POST',
+      })
+      if (response.ok) {
+        await fetchQueries()
+        return true
+      }
+    } catch (err) {
+      console.error('Failed to approve query:', err)
+    }
+    return false
+  }, [fetchQueries])
+
   // Connect to SSE activity feed
   const connectActivityFeed = useCallback(() => {
     if (!isAdmin) return
@@ -318,5 +333,6 @@ export function useAdmin(authUser) {
     addToBlacklist,
     removeFromBlacklist,
     deleteQuery,
+    approveQuery,
   }
 }

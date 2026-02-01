@@ -13,17 +13,24 @@ export function useSearchQueries() {
   })
 
   // Fetch queries on mount
-  useEffect(() => {
-    fetch('/api/queries')
-      .then(res => res.ok ? res.json() : [])
-      .then(data => {
-        setQueries(data)
-        setLoading(false)
-      })
-      .catch(() => {
-        setLoading(false)
-      })
+  const fetchQueries = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('accessToken')
+      const headers = token ? { Authorization: `Bearer ${token}` } : {}
+      const res = await fetch('/api/queries', { headers })
+      if (res.ok) {
+        setQueries(await res.json())
+      }
+    } catch (err) {
+      console.error('Failed to fetch queries:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    fetchQueries()
+  }, [fetchQueries])
 
   // Save enabled IDs to localStorage
   useEffect(() => {
@@ -61,6 +68,20 @@ export function useSearchQueries() {
     }
   }, [enabledIds])
 
+  // Track hits for queries after scanning
+  const trackHits = useCallback(async (hits) => {
+    if (!hits || hits.length === 0) return
+    try {
+      await fetch('/api/queries/hits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hits }),
+      })
+    } catch (err) {
+      console.error('Failed to track query hits:', err)
+    }
+  }, [])
+
   const toggleQuery = useCallback((id) => {
     setEnabledIds(prev => {
       // If null (all enabled), create a set with all IDs except this one
@@ -93,16 +114,16 @@ export function useSearchQueries() {
     return enabledIds === null || enabledIds.has(id)
   }, [enabledIds])
 
-  // Return only enabled query strings for use in scanning
-  const queryStrings = queries
-    .filter(q => isEnabled(q.id))
-    .map(q => q.query)
+  // Return only enabled queries for use in scanning
+  const enabledQueries = queries.filter(q => isEnabled(q.id))
+  const queryStrings = enabledQueries.map(q => q.query)
 
   const enabledCount = enabledIds === null ? queries.length : enabledIds.size
 
   return {
     queries,
     queryStrings,
+    enabledQueries,
     loading,
     error,
     setError,
@@ -112,5 +133,7 @@ export function useSearchQueries() {
     selectNone,
     isEnabled,
     enabledCount,
+    trackHits,
+    refetch: fetchQueries,
   }
 }

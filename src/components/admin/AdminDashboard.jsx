@@ -683,13 +683,13 @@ function QueriesTab({ queries, loading, onDeleteQuery, onApproveQuery }) {
 
       <div className="space-y-2">
         <h3 className="text-sm font-medium">Approved Queries ({approvedQueries.length})</h3>
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
           <thead>
             <tr className="border-b text-muted-foreground">
-              <th className="text-left py-2 font-medium">Query</th>
-              <th className="text-right py-2 font-medium">Hits</th>
-              <th className="text-left py-2 font-medium">Added By</th>
-              <th className="text-right py-2 font-medium">Actions</th>
+              <th className="text-left py-2 font-medium w-1/2">Query</th>
+              <th className="text-right py-2 font-medium w-16 px-2">Hits</th>
+              <th className="text-left py-2 font-medium w-32 px-2">Added By</th>
+              <th className="text-right py-2 font-medium w-20">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -698,10 +698,10 @@ function QueriesTab({ queries, loading, onDeleteQuery, onApproveQuery }) {
                 <td className="py-2">
                   <code className="text-xs bg-muted px-1 py-0.5 rounded">{query.query}</code>
                 </td>
-                <td className="py-2 text-right font-mono text-muted-foreground">
+                <td className="py-2 text-right font-mono text-muted-foreground px-2">
                   {Number(query.hitCount || 0).toLocaleString()}
                 </td>
-                <td className="py-2 text-muted-foreground truncate max-w-[120px]">
+                <td className="py-2 text-muted-foreground truncate px-2">
                   {query.addedBy || 'System'}
                 </td>
                 <td className="py-2 text-right">

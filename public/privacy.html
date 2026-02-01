@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - SEVR</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #fafafa;
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 900;
+      font-style: italic;
+      background: #fafafa;
+      color: #0a0a0a;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      display: inline-block;
+      margin-bottom: 2rem;
+      text-decoration: none;
+    }
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+    h2 {
+      font-size: 1.1rem;
+      margin: 2rem 0 0.75rem;
+      color: #fafafa;
+    }
+    p, li {
+      color: #a1a1aa;
+      margin-bottom: 0.75rem;
+    }
+    ul {
+      margin-left: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+    li {
+      margin-bottom: 0.25rem;
+    }
+    strong {
+      color: #fafafa;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #27272a;
+      margin: 1.5rem 0;
+    }
+    a {
+      color: #fafafa;
+    }
+    .back {
+      display: inline-block;
+      margin-top: 2rem;
+      color: #a1a1aa;
+      text-decoration: none;
+    }
+    .back:hover {
+      color: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="logo">SEVR</a>
+
+    <h1>Privacy Policy</h1>
+
+    <section>
+      <h2>Overview</h2>
+      <p>
+        SEVR is designed with privacy as a core principle. Your email content
+        never leaves your browser, and we collect only the minimum data necessary to
+        provide the service.
+      </p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Gmail Access</h2>
+      <p>We request <strong>read-only</strong> access to your Gmail inbox. This allows us to:</p>
+      <ul>
+        <li>Search for emails matching common patterns (welcome emails, password resets, etc.)</li>
+        <li>Read email headers (sender address and subject line only)</li>
+        <li>Determine when you last received email from each service</li>
+      </ul>
+      <p><strong>We do not access:</strong> email bodies, attachments, contacts, or any other Gmail data.</p>
+      <p>
+        All Gmail scanning happens directly in your browser. Your Gmail access token is never
+        sent to our server.
+      </p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Local Storage (No Account)</h2>
+      <p>Without an account, we store the following in your browser only:</p>
+      <ul>
+        <li>Your discovered services list (domains, names, migration status)</li>
+        <li>Your theme preference (light/dark mode)</li>
+      </ul>
+      <p>This data never leaves your device unless you create an account.</p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Server Storage (With Account)</h2>
+      <p>If you create an account, we store on our server:</p>
+      <ul>
+        <li>Your email address (for login)</li>
+        <li>Your encrypted service list (we cannot read it without your password)</li>
+        <li>Encryption metadata (salt and verifier, for password validation)</li>
+        <li>Authentication tokens (hashed, for session management)</li>
+      </ul>
+      <p><strong>We never store:</strong> your password, Gmail tokens, or unencrypted service data.</p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>End-to-End Encryption</h2>
+      <p>
+        Your service list is encrypted in your browser using AES-256-GCM before being sent
+        to our server. The encryption key is derived from your password using PBKDF2 with
+        100,000 iterations. We cannot decrypt your data without your password.
+      </p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Community Guides</h2>
+      <p>
+        Guides for changing email on various services are shared publicly and are not
+        encrypted. If you contribute a guide, your email address is stored as the author
+        (displayed in redacted form to other users).
+      </p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Data Retention</h2>
+      <ul>
+        <li>Account data is retained until you delete your account</li>
+        <li>OTP codes expire after 10 minutes</li>
+        <li>Session tokens expire after 30 days</li>
+        <li>Community guide contributions are retained indefinitely</li>
+      </ul>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Data Deletion</h2>
+      <p>
+        You can delete your account at any time from your account settings. This permanently
+        removes all your data from our servers, including your encrypted service list and
+        authentication tokens. Community guide contributions you made will remain but can be
+        edited by others.
+      </p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Third-Party Services</h2>
+      <ul>
+        <li><strong>Google Gmail API:</strong> Used for scanning your inbox (browser-only)</li>
+        <li><strong>Google Identity Services:</strong> Used for Gmail authentication</li>
+      </ul>
+      <p>We do not use analytics, tracking pixels, or advertising services.</p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Open Source</h2>
+      <p>
+        This application is open source. You can audit the code, verify our privacy claims,
+        or run your own instance at <a href="https://github.com/sevr-me/sevr" target="_blank" rel="noopener">github.com/sevr-me/sevr</a>.
+      </p>
+    </section>
+
+    <hr>
+
+    <section>
+      <h2>Contact</h2>
+      <p>
+        For privacy-related questions or concerns, please open an issue on our
+        <a href="https://github.com/sevr-me/sevr" target="_blank" rel="noopener">GitHub repository</a>.
+      </p>
+    </section>
+
+    <a href="/" class="back">← Back to SEVR</a>
+  </div>
+</body>
+</html>

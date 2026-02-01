@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js';
 import servicesRoutes from './routes/services.js';
 import userRoutes from './routes/user.js';
 import guidesRoutes from './routes/guides.js';
+import queriesRoutes from './routes/queries.js';
 import encryptedRoutes from './routes/encrypted.js';
 import adminRoutes from './routes/admin.js';
 import trackingRoutes from './routes/tracking.js';
@@ -31,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/guides', guidesRoutes);
+app.use('/api/queries', queriesRoutes);
 app.use('/api/encrypted', encryptedRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/track', trackingRoutes);
@@ -39,6 +41,14 @@ app.use('/api/track', trackingRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Serve privacy page at /privacy (without .html)
+if (process.env.NODE_ENV === 'production') {
+  app.get('/privacy', (req, res) => {
+    const distPath = path.join(__dirname, '../../dist');
+    res.sendFile(path.join(distPath, 'privacy.html'));
+  });
+}
 
 // Serve frontend for all other routes in production (SPA)
 if (process.env.NODE_ENV === 'production') {

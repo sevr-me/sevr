@@ -6,6 +6,7 @@ import { useEncryption } from '@/hooks/useEncryption'
 import { useGmail } from '@/hooks/useGmail'
 import { useServices } from '@/hooks/useServices'
 import { useGuides } from '@/hooks/useGuides'
+import { useSearchQueries } from '@/hooks/useSearchQueries'
 import { useAdmin } from '@/hooks/useAdmin'
 
 // Components
@@ -16,6 +17,7 @@ import { EncryptionModal } from '@/components/encryption/EncryptionModal'
 import { FaqModal } from '@/components/faq/FaqModal'
 import { PrivacyModal } from '@/components/privacy/PrivacyModal'
 import { GuideModal } from '@/components/guides/GuideModal'
+import { SearchQueriesModal } from '@/components/queries/SearchQueriesModal'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
 import { ConnectGmail } from '@/components/scanner/ConnectGmail'
 import { ScannerControls } from '@/components/scanner/ScannerControls'
@@ -27,6 +29,7 @@ function App() {
   const [showFaq, setShowFaq] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [showQueries, setShowQueries] = useState(false)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme')
     return saved ? saved === 'dark' : true // Default to dark
@@ -101,6 +104,21 @@ function App() {
     handleDisconnectGmail,
   } = useGmail()
 
+  // Search queries hook
+  const {
+    queries: searchQueriesList,
+    queryStrings: searchQueries,
+    loading: queriesLoading,
+    error: queriesError,
+    setError: setQueriesError,
+    addQuery,
+    toggleQuery,
+    selectAll: selectAllQueries,
+    selectNone: selectNoneQueries,
+    isEnabled: isQueryEnabled,
+    enabledCount: enabledQueryCount,
+  } = useSearchQueries()
+
   // Services hook
   const {
     services,
@@ -131,7 +149,7 @@ function App() {
     setMigratedBulk,
     setIgnoredBulk,
     setImportantBulk,
-  } = useServices(encryptionKey, encryptionStatus, saveEncryptedServices)
+  } = useServices(encryptionKey, encryptionStatus, saveEncryptedServices, searchQueries)
 
   // Guides hook
   const {
@@ -153,6 +171,7 @@ function App() {
     stats: adminStats,
     users: adminUsers,
     guides: adminGuides,
+    queries: adminQueries,
     blacklist: adminBlacklist,
     activities: adminActivities,
     usersOverTime: adminUsersOverTime,
@@ -166,6 +185,7 @@ function App() {
     deleteUser: adminDeleteUser,
     addToBlacklist: adminAddToBlacklist,
     removeFromBlacklist: adminRemoveFromBlacklist,
+    deleteQuery: adminDeleteQuery,
   } = useAdmin(authUser)
 
   // Send heartbeat to track online status
@@ -242,6 +262,7 @@ function App() {
               onDisconnect={handleDisconnectGmail}
               onExport={exportServices}
               onClear={clearServices}
+              onShowQueries={() => setShowQueries(true)}
             />
 
             {isLoading && <ScanProgress scanProgress={scanProgress} />}
@@ -355,6 +376,24 @@ function App() {
       <FaqModal open={showFaq} onOpenChange={setShowFaq} />
       <PrivacyModal open={showPrivacy} onOpenChange={setShowPrivacy} />
 
+      <SearchQueriesModal
+        open={showQueries}
+        onOpenChange={(open) => {
+          setShowQueries(open)
+          if (!open) setQueriesError(null)
+        }}
+        queries={searchQueriesList}
+        loading={queriesLoading}
+        error={queriesError}
+        onAdd={addQuery}
+        onToggle={toggleQuery}
+        onSelectAll={selectAllQueries}
+        onSelectNone={selectNoneQueries}
+        isEnabled={isQueryEnabled}
+        enabledCount={enabledQueryCount}
+        authUser={authUser}
+      />
+
       <GuideModal
         editingGuide={editingGuide}
         isEditingGuide={isEditingGuide}
@@ -374,6 +413,7 @@ function App() {
         stats={adminStats}
         users={adminUsers}
         guides={adminGuides}
+        queries={adminQueries}
         blacklist={adminBlacklist}
         activities={adminActivities}
         usersOverTime={adminUsersOverTime}
@@ -387,6 +427,7 @@ function App() {
         onDeleteUser={adminDeleteUser}
         onAddToBlacklist={adminAddToBlacklist}
         onRemoveFromBlacklist={adminRemoveFromBlacklist}
+        onDeleteQuery={adminDeleteQuery}
         currentUserEmail={authUser?.email}
       />
     </div>

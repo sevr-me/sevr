@@ -17,6 +17,7 @@ export function AdminDashboard({
   stats,
   users,
   guides,
+  queries,
   blacklist,
   activities,
   usersOverTime,
@@ -30,6 +31,7 @@ export function AdminDashboard({
   onDeleteUser,
   onAddToBlacklist,
   onRemoveFromBlacklist,
+  onDeleteQuery,
   currentUserEmail,
 }) {
   const [activeTab, setActiveTab] = useState('overview')
@@ -45,6 +47,7 @@ export function AdminDashboard({
     { id: 'overview', label: 'Overview' },
     { id: 'users', label: 'Users' },
     { id: 'guides', label: 'Guides' },
+    { id: 'queries', label: 'Queries' },
     { id: 'blacklist', label: 'Blacklist' },
     { id: 'activity', label: 'Activity' },
   ]
@@ -99,6 +102,13 @@ export function AdminDashboard({
               loading={loading}
               onDeleteGuide={onDeleteGuide}
               onUpdateGuide={onUpdateGuide}
+            />
+          )}
+          {activeTab === 'queries' && (
+            <QueriesTab
+              queries={queries}
+              loading={loading}
+              onDeleteQuery={onDeleteQuery}
             />
           )}
           {activeTab === 'blacklist' && (
@@ -592,6 +602,97 @@ function BlacklistTab({ blacklist, loading, onAddToBlacklist, onRemoveFromBlackl
             ))}
           </tbody>
         </table>
+      )}
+    </div>
+  )
+}
+
+function QueriesTab({ queries, loading, onDeleteQuery }) {
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
+
+  if (loading) {
+    return <div className="text-center py-8 text-muted-foreground">Loading...</div>
+  }
+
+  if (queries.length === 0) {
+    return <div className="text-center py-8 text-muted-foreground">No search queries found</div>
+  }
+
+  const handleDelete = async () => {
+    setActionLoading(true)
+    await onDeleteQuery(confirmDelete.id)
+    setActionLoading(false)
+    setConfirmDelete(null)
+  }
+
+  return (
+    <div className="space-y-2 p-1">
+      <p className="text-sm text-muted-foreground mb-4">
+        These search phrases are used by all users to scan their inboxes.
+      </p>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b text-muted-foreground">
+            <th className="text-left py-2 font-medium">Query</th>
+            <th className="text-left py-2 font-medium">Added</th>
+            <th className="text-left py-2 font-medium">By</th>
+            <th className="text-right py-2 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {queries.map((query) => (
+            <tr key={query.id} className="border-b">
+              <td className="py-2">
+                <code className="text-xs bg-muted px-1 py-0.5 rounded">{query.query}</code>
+              </td>
+              <td className="py-2 text-muted-foreground">
+                {formatDate(query.addedAt)}
+              </td>
+              <td className="py-2 text-muted-foreground truncate max-w-[120px]">
+                {query.addedBy || 'System'}
+              </td>
+              <td className="py-2 text-right">
+                <button
+                  onClick={() => setConfirmDelete(query)}
+                  className="text-xs text-destructive hover:underline"
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Delete confirmation dialog */}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background border rounded-lg p-6 max-w-md mx-4">
+            <h3 className="font-semibold mb-2">Delete Search Query</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Are you sure you want to delete this query?
+              <br />
+              <code className="bg-muted px-1 py-0.5 rounded mt-2 block">{confirmDelete.query}</code>
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-sm border rounded hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={actionLoading}
+                className="px-3 py-1.5 text-sm bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
+              >
+                {actionLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+  <defs>
+    <style>
+      .bg { fill: #0a0a0a; }
+      .text {
+        fill: #fafafa;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 36px;
+        font-weight: 900;
+        font-style: italic;
+        letter-spacing: -1px;
+      }
+      @media (prefers-color-scheme: light) {
+        .bg { fill: #0a0a0a; }
+        .text { fill: #fafafa; }
+      }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="200" height="60" rx="8" ry="8"/>
+  <text class="text" x="100" y="43" text-anchor="middle">SEVR</text>
+</svg>

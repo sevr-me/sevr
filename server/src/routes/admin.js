@@ -22,6 +22,8 @@ import {
   getPageViewStats,
   getTodayStats,
   getTotalStats,
+  getAllSearchQueries,
+  deleteSearchQuery,
 } from '../db.js';
 import { setActivityBroadcaster } from '../auth.js';
 
@@ -327,6 +329,37 @@ router.delete('/blacklist/:email', (req, res) => {
   } catch (error) {
     console.error('Error removing from blacklist:', error);
     res.status(500).json({ error: 'Failed to remove from blacklist' });
+  }
+});
+
+// GET /api/admin/queries - Get all search queries
+router.get('/queries', (req, res) => {
+  try {
+    const queries = getAllSearchQueries.all();
+    res.json(queries.map(q => ({
+      id: q.id,
+      query: q.query,
+      addedAt: q.added_at,
+      addedBy: q.added_by_email,
+    })));
+  } catch (error) {
+    console.error('Error fetching queries:', error);
+    res.status(500).json({ error: 'Failed to fetch queries' });
+  }
+});
+
+// DELETE /api/admin/queries/:id - Delete a search query
+router.delete('/queries/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = deleteSearchQuery.run(id);
+    if (result.changes === 0) {
+      return res.status(404).json({ error: 'Query not found' });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting query:', error);
+    res.status(500).json({ error: 'Failed to delete query' });
   }
 });
 

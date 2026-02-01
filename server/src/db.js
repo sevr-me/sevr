@@ -411,4 +411,52 @@ export const cleanupOldPageViews = db.prepare(`
   DELETE FROM page_views WHERE date < ?
 `);
 
+// Search queries table (community-editable search phrases)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS search_queries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    query TEXT UNIQUE NOT NULL,
+    added_by TEXT,
+    added_at TEXT NOT NULL,
+    FOREIGN KEY (added_by) REFERENCES users(id) ON DELETE SET NULL
+  );
+`);
+
+// Insert default queries if table is empty
+const queryCount = db.prepare('SELECT COUNT(*) as count FROM search_queries').get();
+if (queryCount.count === 0) {
+  const defaultQueries = [
+    'subject:"verify your email"',
+    'subject:"confirm your email"',
+    'subject:"welcome to"',
+    'subject:"account created"',
+    'subject:"password reset"',
+    'subject:"reset your password"',
+    'subject:"sign up"',
+    'subject:"activate your account"',
+    'subject:"confirm your account"',
+    'subject:"verify your account"',
+  ];
+  const insertQuery = db.prepare('INSERT INTO search_queries (query, added_at) VALUES (?, ?)');
+  const now = new Date().toISOString();
+  for (const q of defaultQueries) {
+    insertQuery.run(q, now);
+  }
+}
+
+export const getAllSearchQueries = db.prepare(`
+  SELECT sq.id, sq.query, sq.added_at, u.email as added_by_email
+  FROM search_queries sq
+  LEFT JOIN users u ON sq.added_by = u.id
+  ORDER BY sq.id ASC
+`);
+
+export const addSearchQuery = db.prepare(`
+  INSERT INTO search_queries (query, added_by, added_at) VALUES (?, ?, ?)
+`);
+
+export const deleteSearchQuery = db.prepare(`
+  DELETE FROM search_queries WHERE id = ?
+`);
+
 export default db;

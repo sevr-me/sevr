@@ -1,3 +1,4 @@
+import { Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export function ScannerControls({
@@ -10,6 +11,7 @@ export function ScannerControls({
   onDisconnect,
   onExport,
   onClear,
+  onShowQueries,
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -27,6 +29,10 @@ export function ScannerControls({
           Connect Gmail to Rescan
         </Button>
       )}
+
+      <Button variant="outline" onClick={onShowQueries} title="Configure search phrases">
+        <Settings2 className="h-4 w-4" />
+      </Button>
 
       {hasServices && (
         <>

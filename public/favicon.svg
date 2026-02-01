@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <style>
+      .bg { fill: #0a0a0a; }
+      .text {
+        fill: #fafafa;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 24px;
+        font-weight: 900;
+        font-style: italic;
+      }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="32" height="32" rx="6" ry="6"/>
+  <text class="text" x="16" y="24" text-anchor="middle">S</text>
+</svg>

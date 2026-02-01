@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
 import { api } from '@/lib/api'
-import { SEARCH_QUERIES } from '@/lib/constants'
 import { extractServiceInfo } from '@/lib/gmail'
 
 // Fuzzy match function - returns score (higher = better match), or -1 for no match
@@ -34,7 +33,7 @@ function fuzzyMatch(pattern, text) {
   return patternIdx === pattern.length ? score : -1
 }
 
-export function useServices(encryptionKey, encryptionStatus, saveEncryptedServices) {
+export function useServices(encryptionKey, encryptionStatus, saveEncryptedServices, searchQueries = []) {
   const [services, setServices] = useState(() => {
     const saved = localStorage.getItem('sevr-services')
     return saved ? JSON.parse(saved) : []
@@ -74,19 +73,23 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
 
   const scanGmail = useCallback(async (accessToken) => {
     if (!accessToken) return
+    if (searchQueries.length === 0) {
+      setError('No search queries configured')
+      return
+    }
 
     setIsLoading(true)
     setError(null)
-    setScanProgress({ current: 0, total: SEARCH_QUERIES.length, status: 'Starting scan...' })
+    setScanProgress({ current: 0, total: searchQueries.length, status: 'Starting scan...' })
 
     const foundServices = new Map()
 
     try {
-      for (let i = 0; i < SEARCH_QUERIES.length; i++) {
-        const query = SEARCH_QUERIES[i]
+      for (let i = 0; i < searchQueries.length; i++) {
+        const query = searchQueries[i]
         setScanProgress({
           current: i + 1,
-          total: SEARCH_QUERIES.length,
+          total: searchQueries.length,
           status: `Searching: ${query.replace('subject:', '')}`
         })
 
@@ -210,13 +213,13 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
       setServices(mergedServices)
       saveServices(mergedServices)
 
-      setScanProgress({ current: SEARCH_QUERIES.length, total: SEARCH_QUERIES.length, status: 'Scan complete!' })
+      setScanProgress({ current: searchQueries.length, total: searchQueries.length, status: 'Scan complete!' })
     } catch (err) {
       setError(err.message)
     } finally {
       setIsLoading(false)
     }
-  }, [services, saveServices])
+  }, [services, saveServices, searchQueries])
 
   const toggleMigrated = useCallback((serviceId) => {
     setServices(prev => {

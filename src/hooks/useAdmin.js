@@ -5,6 +5,7 @@ export function useAdmin(authUser) {
   const [stats, setStats] = useState(null)
   const [users, setUsers] = useState([])
   const [guides, setGuides] = useState([])
+  const [queries, setQueries] = useState([])
   const [blacklist, setBlacklist] = useState([])
   const [activities, setActivities] = useState([])
   const [usersOverTime, setUsersOverTime] = useState([])
@@ -64,6 +65,18 @@ export function useAdmin(authUser) {
     }
   }, [isAdmin])
 
+  const fetchQueries = useCallback(async () => {
+    if (!isAdmin) return
+    try {
+      const response = await api('/api/admin/queries')
+      if (response.ok) {
+        setQueries(await response.json())
+      }
+    } catch (err) {
+      console.error('Failed to fetch queries:', err)
+    }
+  }, [isAdmin])
+
   const fetchUsersOverTime = useCallback(async () => {
     if (!isAdmin) return
     try {
@@ -94,12 +107,13 @@ export function useAdmin(authUser) {
       fetchStats(),
       fetchUsers(),
       fetchGuides(),
+      fetchQueries(),
       fetchBlacklist(),
       fetchUsersOverTime(),
       fetchUsersByCountry(),
     ])
     setLoading(false)
-  }, [fetchStats, fetchUsers, fetchGuides, fetchBlacklist, fetchUsersOverTime, fetchUsersByCountry])
+  }, [fetchStats, fetchUsers, fetchGuides, fetchQueries, fetchBlacklist, fetchUsersOverTime, fetchUsersByCountry])
 
   // Admin actions
   const deleteGuide = useCallback(async (domain) => {
@@ -180,6 +194,21 @@ export function useAdmin(authUser) {
     }
     return false
   }, [fetchBlacklist])
+
+  const deleteQuery = useCallback(async (id) => {
+    try {
+      const response = await api(`/api/admin/queries/${id}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        await fetchQueries()
+        return true
+      }
+    } catch (err) {
+      console.error('Failed to delete query:', err)
+    }
+    return false
+  }, [fetchQueries])
 
   // Connect to SSE activity feed
   const connectActivityFeed = useCallback(() => {
@@ -272,6 +301,7 @@ export function useAdmin(authUser) {
     stats,
     users,
     guides,
+    queries,
     blacklist,
     activities,
     usersOverTime,
@@ -287,5 +317,6 @@ export function useAdmin(authUser) {
     deleteUser,
     addToBlacklist,
     removeFromBlacklist,
+    deleteQuery,
   }
 }

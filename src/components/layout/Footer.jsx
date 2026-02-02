@@ -24,6 +24,15 @@ export function Footer({ showEncrypted, onShowFaq, onShowPrivacy }) {
           >
             View source
           </a>
+          {' '}
+          <a
+            href="https://buymeacoffee.com/sevr.me"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            ☕ Support
+          </a>
         </p>
       </div>
     </footer>

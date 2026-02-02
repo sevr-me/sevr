@@ -36,7 +36,7 @@ export function ServiceCard({
         service.ignored && 'opacity-40',
         service.isSpam && !service.migrated && !service.important && 'border-orange-200 dark:border-orange-900/50',
         service.isInactive && 'border-dashed',
-        isSelected && 'ring-2 ring-primary'
+        isSelected && 'ring-1 ring-primary bg-primary/20'
       )}
     >
       <Checkbox

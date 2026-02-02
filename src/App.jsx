@@ -246,37 +246,59 @@ function App() {
         onToggleTheme={() => setDarkMode(!darkMode)}
       />
 
-      <main className="flex-1 max-w-3xl mx-auto px-4 py-6 w-full">
+      <main className="flex-1 w-full">
         {!isGmailConnected && services.length === 0 ? (
-          <ConnectGmail
-            authUser={authUser}
-            tokenClient={tokenClient}
-            onConnect={handleConnectGmail}
-          />
-        ) : (
-          <div className="space-y-6">
-            <ScannerControls
-              isGmailConnected={isGmailConnected}
-              isLoading={isLoading}
-              hasServices={services.length > 0}
+          <div className="max-w-3xl mx-auto px-4 py-6">
+            <ConnectGmail
+              authUser={authUser}
               tokenClient={tokenClient}
-              onScan={() => scanGmail(accessToken)}
               onConnect={handleConnectGmail}
-              onDisconnect={handleDisconnectGmail}
-              onExport={exportServices}
-              onClear={clearServices}
-              onShowQueries={() => setShowQueries(true)}
             />
+          </div>
+        ) : (
+          <div className="relative max-w-2xl mx-auto px-4 py-6">
+            {/* Left Sidebar - positioned to the left of centered content */}
+            <aside className="absolute right-full mr-4 w-48 space-y-6 hidden lg:block">
+              <ScannerControls
+                isGmailConnected={isGmailConnected}
+                isLoading={isLoading}
+                hasServices={services.length > 0}
+                tokenClient={tokenClient}
+                onScan={() => scanGmail(accessToken)}
+                onConnect={handleConnectGmail}
+                onDisconnect={handleDisconnectGmail}
+                onExport={exportServices}
+                onClear={clearServices}
+                onShowQueries={() => setShowQueries(true)}
+              />
 
-            {isLoading && <ScanProgress scanProgress={scanProgress} />}
+              {isLoading && <ScanProgress scanProgress={scanProgress} />}
 
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  <strong>Error:</strong> {error}
-                </AlertDescription>
-              </Alert>
-            )}
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    <strong>Error:</strong> {error}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </aside>
+
+            {/* Mobile controls */}
+            <div className="lg:hidden mb-4 space-y-4">
+              <ScannerControls
+                isGmailConnected={isGmailConnected}
+                isLoading={isLoading}
+                hasServices={services.length > 0}
+                tokenClient={tokenClient}
+                onScan={() => scanGmail(accessToken)}
+                onConnect={handleConnectGmail}
+                onDisconnect={handleDisconnectGmail}
+                onExport={exportServices}
+                onClear={clearServices}
+                onShowQueries={() => setShowQueries(true)}
+              />
+              {isLoading && <ScanProgress scanProgress={scanProgress} />}
+            </div>
 
             {services.length > 0 && (
               <ServicesList

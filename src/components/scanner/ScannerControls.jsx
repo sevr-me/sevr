@@ -14,33 +14,34 @@ export function ScannerControls({
   onShowQueries,
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-2">
       {isGmailConnected ? (
         <>
-          <Button onClick={onScan} disabled={isLoading}>
+          <Button onClick={onScan} disabled={isLoading} className="w-full">
             {isLoading ? 'Scanning...' : hasServices ? 'Rescan Inbox' : 'Scan Inbox'}
           </Button>
-          <Button variant="outline" onClick={onDisconnect}>
+          <Button variant="outline" onClick={onDisconnect} className="w-full">
             Disconnect Gmail
           </Button>
         </>
       ) : (
-        <Button onClick={onConnect} disabled={!tokenClient}>
+        <Button onClick={onConnect} disabled={!tokenClient} className="w-full">
           Connect Gmail to Rescan
         </Button>
       )}
 
-      <Button variant="outline" onClick={onShowQueries} title="Configure search phrases">
-        <Settings2 className="h-4 w-4" />
+      <Button variant="outline" onClick={onShowQueries} title="Configure search phrases" className="w-full">
+        <Settings2 className="h-4 w-4 mr-2" />
+        Search Queries
       </Button>
 
       {hasServices && (
         <>
-          <Button variant="outline" onClick={onExport}>
+          <Button variant="outline" onClick={onExport} className="w-full">
             Export JSON
           </Button>
-          <Button variant="destructive" onClick={onClear}>
-            Clear
+          <Button variant="destructive" onClick={onClear} className="w-full">
+            Clear All
           </Button>
         </>
       )}

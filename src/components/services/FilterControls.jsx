@@ -9,6 +9,8 @@ export function FilterControls({
   setHideInactive,
   inactiveYears,
   setInactiveYears,
+  groupByDomain,
+  setGroupByDomain,
 }) {
   return (
     <div className="flex flex-col gap-2 text-sm">
@@ -41,6 +43,17 @@ export function FilterControls({
           className="w-16 h-7"
         />
         <span className="text-muted-foreground">years</span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="groupByDomain"
+          checked={groupByDomain}
+          onCheckedChange={setGroupByDomain}
+        />
+        <Label htmlFor="groupByDomain" className="text-muted-foreground cursor-pointer">
+          Group by main domain
+        </Label>
       </div>
     </div>
   )

@@ -2,6 +2,26 @@ import { useState, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { extractServiceInfo } from '@/lib/gmail'
 
+// Extract main domain from full domain (e.g., mail.google.com -> google.com)
+function getMainDomain(domain) {
+  if (!domain) return ''
+  const parts = domain.toLowerCase().split('.')
+  if (parts.length <= 2) return domain.toLowerCase()
+
+  // Handle common second-level TLDs (co.uk, com.au, etc.)
+  const secondLevelTLDs = ['co', 'com', 'org', 'net', 'gov', 'edu', 'ac']
+  const lastPart = parts[parts.length - 1]
+  const secondLastPart = parts[parts.length - 2]
+
+  if (secondLevelTLDs.includes(secondLastPart) && lastPart.length === 2) {
+    // e.g., amazon.co.uk -> take last 3 parts
+    return parts.slice(-3).join('.')
+  }
+
+  // Default: take last 2 parts
+  return parts.slice(-2).join('.')
+}
+
 // Fuzzy match function - returns score (higher = better match), or -1 for no match
 function fuzzyMatch(pattern, text) {
   if (!pattern) return 0
@@ -44,6 +64,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
   const [spamToEnd, setSpamToEnd] = useState(true)
   const [inactiveYears, setInactiveYears] = useState(2)
   const [hideInactive, setHideInactive] = useState(true)
+  const [groupByDomain, setGroupByDomain] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   // Selection state
@@ -354,7 +375,8 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
   const getSortedServices = useCallback(() => {
     let filtered = [...services].map(s => ({
       ...s,
-      isInactive: isInactive(s)
+      isInactive: isInactive(s),
+      mainDomain: getMainDomain(s.domain)
     }))
 
     // Apply fuzzy search filter
@@ -382,6 +404,11 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
         // Important items first
         if (a.important && !b.important) return -1
         if (!a.important && b.important) return 1
+        // Group by main domain if enabled
+        if (groupByDomain) {
+          const domainCompare = a.mainDomain.localeCompare(b.mainDomain)
+          if (domainCompare !== 0) return domainCompare
+        }
         if (hideInactive) {
           if (a.isInactive && !b.isInactive) return 1
           if (!a.isInactive && b.isInactive) return -1
@@ -395,7 +422,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     }
 
     return filtered
-  }, [services, hideInactive, spamToEnd, isInactive, searchQuery])
+  }, [services, hideInactive, spamToEnd, groupByDomain, isInactive, searchQuery])
 
   const activeServices = services.filter(s => !s.ignored)
   const migratedCount = activeServices.filter(s => s.migrated).length
@@ -414,6 +441,8 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     setInactiveYears,
     hideInactive,
     setHideInactive,
+    groupByDomain,
+    setGroupByDomain,
     searchQuery,
     setSearchQuery,
     scanGmail,

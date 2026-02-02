@@ -17,6 +17,8 @@ export function ServicesList({
   setHideInactive,
   inactiveYears,
   setInactiveYears,
+  groupByDomain,
+  setGroupByDomain,
   searchQuery,
   setSearchQuery,
   onToggleMigrated,
@@ -39,7 +41,7 @@ export function ServicesList({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold">
-            Discovered Services ({totalCount})
+            Discovered Services: {totalCount}
           </h2>
           {gmailEmail && (
             <p className="text-sm text-muted-foreground">from {gmailEmail}</p>
@@ -53,6 +55,8 @@ export function ServicesList({
           setHideInactive={setHideInactive}
           inactiveYears={inactiveYears}
           setInactiveYears={setInactiveYears}
+          groupByDomain={groupByDomain}
+          setGroupByDomain={setGroupByDomain}
         />
       </div>
 

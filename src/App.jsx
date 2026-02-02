@@ -134,6 +134,8 @@ function App() {
     setInactiveYears,
     hideInactive,
     setHideInactive,
+    groupByDomain,
+    setGroupByDomain,
     searchQuery,
     setSearchQuery,
     scanGmail,
@@ -256,7 +258,7 @@ function App() {
             />
           </div>
         ) : (
-          <div className="relative max-w-2xl mx-auto px-4 py-6">
+          <div className="relative max-w-3xl mx-auto px-4 py-6">
             {/* Left Sidebar - positioned to the left of centered content */}
             <aside className="absolute right-full mr-4 w-48 space-y-6 hidden lg:block">
               <ScannerControls
@@ -313,6 +315,8 @@ function App() {
                 setHideInactive={setHideInactive}
                 inactiveYears={inactiveYears}
                 setInactiveYears={setInactiveYears}
+                groupByDomain={groupByDomain}
+                setGroupByDomain={setGroupByDomain}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 onToggleMigrated={toggleMigrated}

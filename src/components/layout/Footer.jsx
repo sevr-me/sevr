@@ -7,15 +7,15 @@ export function Footer({ showEncrypted, onShowFaq, onShowPrivacy }) {
         <p>
           Your email data never leaves your browser.
           {showEncrypted && ' Service list encrypted end-to-end.'}
-          {' '}
-          <Button variant="link" className="px-1 h-auto" onClick={onShowPrivacy}>
+          <span className="mx-2">·</span>
+          <Button variant="link" className="px-0 h-auto" onClick={onShowPrivacy}>
             Privacy
           </Button>
-          {' '}
-          <Button variant="link" className="px-1 h-auto" onClick={onShowFaq}>
+          <span className="mx-2">·</span>
+          <Button variant="link" className="px-0 h-auto" onClick={onShowFaq}>
             FAQ
           </Button>
-          {' '}
+          <span className="mx-2">·</span>
           <a
             href="https://github.com/sevr-me/sevr"
             target="_blank"
@@ -24,7 +24,7 @@ export function Footer({ showEncrypted, onShowFaq, onShowPrivacy }) {
           >
             View source
           </a>
-          {' '}
+          <span className="mx-2">·</span>
           <a
             href="https://buymeacoffee.com/sevr.me"
             target="_blank"

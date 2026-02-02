@@ -283,6 +283,16 @@ function App() {
                   </AlertDescription>
                 </Alert>
               )}
+
+              <a
+                href="https://buymeacoffee.com/sevr.me"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+              >
+                <span>☕</span>
+                <span>Buy me a coffee</span>
+              </a>
             </aside>
 
             {/* Mobile controls */}

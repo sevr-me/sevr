@@ -54,6 +54,10 @@ We cannot recover your data without your password or recovery key. That's the po
     question: 'Is this open source?',
     answer: `Yes. You can audit the code, run your own instance, or contribute improvements. The encryption happens entirely in your browser using the Web Crypto API.`,
   },
+  {
+    question: 'Isn\'t hypocritical to use Cloudflare and GitHub for this?',
+    answer: 'Is it hypocritical to use US tools to build an escape-from-US-tools tool? Yes. Did I consider EU alternatives before giving up and using Cloudflare anyway? Also yes. The good news: your actual end-to-end encrypted data lives on German servers, and you end up with a EU email. I\'m just the hypocrite in the middle.',
+  }
 ]
 
 export function FaqModal({ open, onOpenChange }) {
@@ -61,7 +65,7 @@ export function FaqModal({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>Security FAQ</DialogTitle>
+          <DialogTitle>FAQ</DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="h-[60vh] pr-4">

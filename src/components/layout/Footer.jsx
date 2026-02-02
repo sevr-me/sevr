@@ -13,7 +13,7 @@ export function Footer({ showEncrypted, onShowFaq, onShowPrivacy }) {
           </Button>
           {' '}
           <Button variant="link" className="px-1 h-auto" onClick={onShowFaq}>
-            Security FAQ
+            FAQ
           </Button>
           {' '}
           <a

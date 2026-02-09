@@ -2,6 +2,9 @@
 export const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 export const SCOPES = 'https://www.googleapis.com/auth/gmail.readonly'
 
+// Microsoft OAuth configuration
+export const MICROSOFT_CLIENT_ID = import.meta.env.VITE_MICROSOFT_CLIENT_ID
+
 // Patterns to search for account-related emails
 export const SEARCH_QUERIES = [
   'subject:"verify your email"',

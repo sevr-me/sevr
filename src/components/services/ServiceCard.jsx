@@ -54,6 +54,16 @@ export function ServiceCard({
           {service.name}
         </span>
 
+        {service.provider && (
+          <Badge className={cn(
+            'text-xs h-5 px-1.5 border-0',
+            service.provider === 'gmail' && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+            service.provider === 'outlook' && 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+          )}>
+            {service.provider === 'gmail' ? 'Gmail' : 'Outlook'}
+          </Badge>
+        )}
+
         {service.count > 1 && (
           <Badge variant="secondary" className="text-xs h-5 px-1.5">
             {service.count}
@@ -61,7 +71,9 @@ export function ServiceCard({
         )}
 
         <a
-          href={`https://mail.google.com/mail/u/0/#search/from%3A${encodeURIComponent(service.domain)}`}
+          href={service.provider === 'outlook'
+            ? `https://outlook.live.com/mail/0/search?query=from%3A${encodeURIComponent(service.domain)}`
+            : `https://mail.google.com/mail/u/0/#search/from%3A${encodeURIComponent(service.domain)}`}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}

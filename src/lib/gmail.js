@@ -11,14 +11,11 @@ export function isLikelySpam(email, domain) {
   return spamDomains.some(d => domain.includes(d))
 }
 
-// Extract service info from email message
-export function extractServiceInfo(message) {
-  const headers = message.payload?.headers || []
-  const fromHeader = headers.find(h => h.name.toLowerCase() === 'from')?.value || ''
-
-  // Extract email address from "Name <email>" format
-  const emailMatch = fromHeader.match(/<([^>]+)>/) || [null, fromHeader]
-  const email = emailMatch[1]?.toLowerCase() || fromHeader.toLowerCase()
+// Extract service info from normalized message { from: { name, email }, subject, rawFrom }
+export function extractServiceInfo(normalizedMsg) {
+  const email = normalizedMsg.from.email || ''
+  const senderName = normalizedMsg.from.name || null
+  const rawFrom = normalizedMsg.rawFrom || ''
 
   // Extract domain
   const domainMatch = email.match(/@([^@]+)$/)
@@ -27,13 +24,9 @@ export function extractServiceInfo(message) {
   // Check known patterns first
   for (const [pattern, info] of Object.entries(SERVICE_PATTERNS)) {
     if (email.includes(pattern.toLowerCase())) {
-      return { ...info, email, domain, rawFrom: fromHeader }
+      return { ...info, email, domain, rawFrom }
     }
   }
-
-  // Try to extract service name from domain or sender name
-  const senderNameMatch = fromHeader.match(/^([^<]+)</)
-  const senderName = senderNameMatch ? senderNameMatch[1].trim() : null
 
   // Clean up domain to get service name
   let serviceName = domain
@@ -54,7 +47,7 @@ export function extractServiceInfo(message) {
     category: 'Other',
     email,
     domain,
-    rawFrom: fromHeader,
+    rawFrom,
     guide: null
   }
 }

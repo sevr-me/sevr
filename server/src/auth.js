@@ -20,7 +20,10 @@ import {
   isBlacklisted,
 } from './db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required. Generate one with: openssl rand -hex 32');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_EXPIRES_IN = process.env.REFRESH_EXPIRES_IN || '30d';
 
@@ -44,9 +47,9 @@ export function broadcastActivity(type, data) {
   }
 }
 
-// Generate a 6-digit OTP
+// Generate a 6-digit OTP using cryptographically secure randomness
 export function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 // Hash a token for storage
@@ -132,16 +135,22 @@ export async function requestOtp(email) {
   const id = uuidv4();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
 
-  createOtp.run(id, email.toLowerCase(), code, expiresAt);
+  // Store hashed OTP in database
+  const codeHash = hashToken(code);
+  createOtp.run(id, email.toLowerCase(), codeHash, expiresAt);
 
   // Try to send email, fall back to console log
   const emailSent = await sendOtpEmail(email, code);
 
   if (!emailSent) {
-    // Log to console (development/fallback mode)
-    console.log('\n========================================');
-    console.log(`OTP Code for ${email}: ${code}`);
-    console.log('========================================\n');
+    if (process.env.NODE_ENV !== 'production') {
+      // Log to console only in development
+      console.log('\n========================================');
+      console.log(`OTP Code for ${email}: ${code}`);
+      console.log('========================================\n');
+    } else {
+      console.log(`OTP requested for ${email} but email sending failed`);
+    }
   }
 
   return { success: true };
@@ -163,7 +172,7 @@ export function verifyOtp(email, code) {
     return { success: false, error: 'Too many attempts. Please request a new code.' };
   }
 
-  if (otp.code !== code) {
+  if (otp.code !== hashToken(code)) {
     incrementOtpAttempts.run(otp.id);
     return { success: false, error: 'Invalid code' };
   }

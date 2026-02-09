@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { requestOtp, verifyOtp, refreshAccessToken, logout, updateUserCountry } from '../auth.js';
 
 // Get client IP from request
@@ -9,17 +10,17 @@ function getClientIp(req) {
          req.ip;
 }
 
-// Lookup country from IP using free API
+// Lookup country from IP using HTTPS API
 async function lookupCountry(ip) {
   // For localhost/private IPs, use DEV_COUNTRY env var if set (for testing)
   if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
     return process.env.DEV_COUNTRY || null;
   }
   try {
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=countryCode`);
+    const response = await fetch(`https://ipapi.co/${ip}/country_code/`);
     if (response.ok) {
-      const data = await response.json();
-      return data.countryCode || null;
+      const countryCode = (await response.text()).trim();
+      return countryCode.length === 2 ? countryCode : null;
     }
   } catch (err) {
     console.error('IP lookup failed:', err.message);
@@ -27,10 +28,35 @@ async function lookupCountry(ip) {
   return null;
 }
 
+// Rate limiters for auth endpoints
+const otpRequestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 OTP requests per 15 minutes per IP
+  message: { error: 'Too many OTP requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 verification attempts per 15 minutes per IP
+  message: { error: 'Too many verification attempts. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // 30 refresh attempts per 15 minutes per IP
+  message: { error: 'Too many requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const router = Router();
 
 // POST /api/auth/request-otp
-router.post('/request-otp', async (req, res) => {
+router.post('/request-otp', otpRequestLimiter, async (req, res) => {
   const { email } = req.body;
 
   if (!email || typeof email !== 'string') {
@@ -53,7 +79,7 @@ router.post('/request-otp', async (req, res) => {
 });
 
 // POST /api/auth/verify-otp
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
   const { email, code } = req.body;
 
   if (!email || !code) {
@@ -84,7 +110,7 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 // POST /api/auth/refresh
-router.post('/refresh', (req, res) => {
+router.post('/refresh', refreshLimiter, (req, res) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {

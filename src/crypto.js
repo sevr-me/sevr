@@ -97,14 +97,22 @@ export async function decrypt(key, encryptedData) {
   return JSON.parse(decoder.decode(decryptedBuffer))
 }
 
+// Derive a deterministic IV from a purpose string using SHA-256
+async function deriveIV(purpose) {
+  const encoder = new TextEncoder()
+  const hash = await crypto.subtle.digest('SHA-256', encoder.encode(purpose))
+  return new Uint8Array(hash).slice(0, 12)
+}
+
 // Create a verification hash to check if password is correct
 // This is a hash of a known string encrypted with the key
 export async function createVerifier(key) {
   const encoder = new TextEncoder()
   const data = encoder.encode('sevr-verify')
+  const iv = await deriveIV('sevr-password-verifier')
 
   const encryptedBuffer = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: new Uint8Array(12) }, // Fixed IV for verifier
+    { name: 'AES-GCM', iv },
     key,
     data
   )
@@ -116,8 +124,9 @@ export async function createVerifier(key) {
 export async function verifyPassword(key, verifier) {
   try {
     const data = base64ToBuffer(verifier)
+    const iv = await deriveIV('sevr-password-verifier')
     const decryptedBuffer = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: new Uint8Array(12) },
+      { name: 'AES-GCM', iv },
       key,
       data
     )
@@ -178,7 +187,7 @@ export async function deriveKeyFromRecovery(recoveryKey) {
 // Export the encryption key wrapped with recovery key
 export async function wrapKeyForRecovery(encryptionKey, recoveryKey) {
   const wrapperKey = await deriveKeyFromRecovery(recoveryKey)
-  const iv = new Uint8Array(12) // Fixed IV for key wrapping
+  const iv = await deriveIV('sevr-recovery-wrap')
 
   // We need to export the key first, then encrypt it
   // Since our key is not extractable, we'll store the password-derived key material differently
@@ -199,7 +208,7 @@ export async function wrapKeyForRecovery(encryptionKey, recoveryKey) {
 export async function verifyRecoveryKey(recoveryKey, wrappedVerifier) {
   try {
     const wrapperKey = await deriveKeyFromRecovery(recoveryKey)
-    const iv = new Uint8Array(12)
+    const iv = await deriveIV('sevr-recovery-wrap')
     const wrapped = base64ToBuffer(wrappedVerifier)
 
     const decrypted = await crypto.subtle.decrypt(

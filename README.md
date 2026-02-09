@@ -8,6 +8,7 @@
 
 A privacy-first tool to discover all services linked to your Gmail account. Scanning happens entirely in your browser — your emails never leave your device.
 
+
 ## Features
 
 - **Gmail Scanning**: Discovers services from verification, welcome, and password reset emails

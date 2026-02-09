@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useEncryption } from '@/hooks/useEncryption'
 import { useGmail } from '@/hooks/useGmail'
+import { useOutlook } from '@/hooks/useOutlook'
 import { useServices } from '@/hooks/useServices'
 import { useGuides } from '@/hooks/useGuides'
 import { useSearchQueries } from '@/hooks/useSearchQueries'
@@ -19,7 +20,7 @@ import { PrivacyModal } from '@/components/privacy/PrivacyModal'
 import { GuideModal } from '@/components/guides/GuideModal'
 import { SearchQueriesModal } from '@/components/queries/SearchQueriesModal'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
-import { ConnectGmail } from '@/components/scanner/ConnectGmail'
+import { ConnectProvider } from '@/components/scanner/ConnectProvider'
 import { ScannerControls } from '@/components/scanner/ScannerControls'
 import { ScanProgress } from '@/components/scanner/ScanProgress'
 import { ServicesList } from '@/components/services/ServicesList'
@@ -104,6 +105,18 @@ function App() {
     handleDisconnectGmail,
   } = useGmail()
 
+  // Outlook hook
+  const {
+    isOutlookConnected,
+    outlookEmail,
+    msalReady,
+    handleConnectOutlook,
+    handleDisconnectOutlook,
+    getAccessToken: getOutlookAccessToken,
+  } = useOutlook()
+
+  const isAnyProviderConnected = isGmailConnected || isOutlookConnected
+
   // Search queries hook
   const {
     queries: searchQueriesList,
@@ -138,7 +151,7 @@ function App() {
     setGroupByDomain,
     searchQuery,
     setSearchQuery,
-    scanGmail,
+    scanInbox,
     toggleMigrated,
     clearServices,
     exportServices,
@@ -235,6 +248,16 @@ function App() {
     clearEncryptionState()
   }
 
+  const handleScan = async () => {
+    const providers = []
+    if (isGmailConnected) providers.push({ accessToken, type: 'gmail' })
+    if (isOutlookConnected) {
+      const token = await getOutlookAccessToken()
+      providers.push({ accessToken: token, type: 'outlook' })
+    }
+    await scanInbox(providers)
+  }
+
   const sortedServices = getSortedServices()
 
   return (
@@ -249,12 +272,14 @@ function App() {
       />
 
       <main className="flex-1 w-full">
-        {!isGmailConnected && services.length === 0 ? (
+        {!isAnyProviderConnected && services.length === 0 ? (
           <div className="max-w-3xl mx-auto px-4 py-6">
-            <ConnectGmail
+            <ConnectProvider
               authUser={authUser}
               tokenClient={tokenClient}
-              onConnect={handleConnectGmail}
+              onConnectGmail={handleConnectGmail}
+              onConnectOutlook={handleConnectOutlook}
+              msalReady={msalReady}
             />
           </div>
         ) : (
@@ -263,12 +288,16 @@ function App() {
             <aside className="absolute right-full mr-4 w-48 space-y-6 hidden lg:block">
               <ScannerControls
                 isGmailConnected={isGmailConnected}
+                isOutlookConnected={isOutlookConnected}
                 isLoading={isLoading}
                 hasServices={services.length > 0}
                 tokenClient={tokenClient}
-                onScan={() => scanGmail(accessToken)}
-                onConnect={handleConnectGmail}
-                onDisconnect={handleDisconnectGmail}
+                msalReady={msalReady}
+                onScan={handleScan}
+                onConnectGmail={handleConnectGmail}
+                onDisconnectGmail={handleDisconnectGmail}
+                onConnectOutlook={handleConnectOutlook}
+                onDisconnectOutlook={handleDisconnectOutlook}
                 onExport={exportServices}
                 onClear={clearServices}
                 onShowQueries={() => setShowQueries(true)}
@@ -299,12 +328,16 @@ function App() {
             <div className="lg:hidden mb-4 space-y-4">
               <ScannerControls
                 isGmailConnected={isGmailConnected}
+                isOutlookConnected={isOutlookConnected}
                 isLoading={isLoading}
                 hasServices={services.length > 0}
                 tokenClient={tokenClient}
-                onScan={() => scanGmail(accessToken)}
-                onConnect={handleConnectGmail}
-                onDisconnect={handleDisconnectGmail}
+                msalReady={msalReady}
+                onScan={handleScan}
+                onConnectGmail={handleConnectGmail}
+                onDisconnectGmail={handleDisconnectGmail}
+                onConnectOutlook={handleConnectOutlook}
+                onDisconnectOutlook={handleDisconnectOutlook}
                 onExport={exportServices}
                 onClear={clearServices}
                 onShowQueries={() => setShowQueries(true)}
@@ -316,7 +349,7 @@ function App() {
               <ServicesList
                 services={sortedServices}
                 communityGuides={communityGuides}
-                gmailEmail={gmailEmail}
+                connectedEmails={{ gmail: gmailEmail, outlook: outlookEmail }}
                 migratedCount={migratedCount}
                 totalCount={totalCount}
                 spamToEnd={spamToEnd}

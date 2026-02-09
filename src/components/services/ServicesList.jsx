@@ -8,7 +8,7 @@ import { FilterControls } from './FilterControls'
 export function ServicesList({
   services,
   communityGuides,
-  gmailEmail,
+  connectedEmails,
   migratedCount,
   totalCount,
   spamToEnd,
@@ -43,8 +43,10 @@ export function ServicesList({
           <h2 className="text-xl font-semibold">
             Discovered Services: {totalCount}
           </h2>
-          {gmailEmail && (
-            <p className="text-sm text-muted-foreground">from {gmailEmail}</p>
+          {connectedEmails && (connectedEmails.gmail || connectedEmails.outlook) && (
+            <p className="text-sm text-muted-foreground">
+              from {[connectedEmails.gmail, connectedEmails.outlook].filter(Boolean).join(', ')}
+            </p>
           )}
         </div>
 

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { api } from '@/lib/api'
 import { extractServiceInfo } from '@/lib/gmail'
+import { getAdapter } from '@/lib/mailProvider'
 
 // Extract main domain from full domain (e.g., mail.google.com -> google.com)
 function getMainDomain(domain) {
@@ -92,8 +93,8 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     }
   }, [])
 
-  const scanGmail = useCallback(async (accessToken) => {
-    if (!accessToken) return
+  const scanInbox = useCallback(async (providers) => {
+    if (!providers || providers.length === 0) return
     if (searchQueries.length === 0) {
       setError('No search queries configured')
       return
@@ -101,127 +102,113 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
 
     setIsLoading(true)
     setError(null)
-    setScanProgress({ current: 0, total: searchQueries.length, status: 'Starting scan...' })
+
+    const totalQueries = searchQueries.length * providers.length
+    setScanProgress({ current: 0, total: totalQueries, status: 'Starting scan...' })
 
     const foundServices = new Map()
-    const queryHits = new Map() // Track hits per query
+    const queryHits = new Map()
+    let queryIndex = 0
 
     try {
-      for (let i = 0; i < searchQueries.length; i++) {
-        const queryObj = searchQueries[i]
-        const query = queryObj.query || queryObj // Support both object and string formats
-        const queryId = queryObj.id
-
-        setScanProgress({
-          current: i + 1,
-          total: searchQueries.length,
-          status: `Searching: ${query.replace('subject:', '')}`
-        })
-
-        const searchResponse = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=100`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        )
-
-        if (!searchResponse.ok) {
-          throw new Error(`Gmail API error: ${searchResponse.status}`)
+      for (const provider of providers) {
+        const adapter = getAdapter(provider.type)
+        if (!adapter) {
+          console.error(`Unknown provider type: ${provider.type}`)
+          continue
         }
 
-        const searchData = await searchResponse.json()
-        const messages = searchData.messages || []
+        for (let i = 0; i < searchQueries.length; i++) {
+          const queryObj = searchQueries[i]
+          const query = queryObj.query || queryObj
+          const queryId = queryObj.id
 
-        // Track hits for this query
-        if (queryId && messages.length > 0) {
-          queryHits.set(queryId, (queryHits.get(queryId) || 0) + messages.length)
-        }
+          queryIndex++
+          setScanProgress({
+            current: queryIndex,
+            total: totalQueries,
+            status: `Searching (${provider.type}): ${query.replace('subject:', '')}`
+          })
 
-        for (let j = 0; j < messages.length; j += 10) {
-          const batch = messages.slice(j, j + 10)
+          const searchData = await adapter.searchMessages(provider.accessToken, query, 100)
+          const messages = searchData.messages || []
 
-          const details = await Promise.all(
-            batch.map(msg =>
-              fetch(
-                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`,
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              ).then(r => r.json())
-            )
-          )
-
-          for (const message of details) {
-            const serviceInfo = extractServiceInfo(message)
-            const key = serviceInfo.domain
-
-            const messageDate = parseInt(message.internalDate, 10)
-            if (!foundServices.has(key)) {
-              foundServices.set(key, {
-                ...serviceInfo,
-                id: key,
-                migrated: false,
-                firstSeen: messageDate,
-                lastSeen: messageDate,
-                count: 1,
-                isSpam: false,
-              })
-            } else {
-              const existing = foundServices.get(key)
-              existing.count++
-              if (messageDate > existing.lastSeen) {
-                existing.lastSeen = messageDate
-              }
-              if (messageDate < existing.firstSeen) {
-                existing.firstSeen = messageDate
-              }
-            }
+          if (queryId && messages.length > 0) {
+            queryHits.set(queryId, (queryHits.get(queryId) || 0) + messages.length)
           }
-        }
 
-        await new Promise(r => setTimeout(r, 100))
-      }
+          for (let j = 0; j < messages.length; j += 10) {
+            const batch = messages.slice(j, j + 10)
 
-      // Second pass: get most recent email from each domain
-      const domains = Array.from(foundServices.keys())
-      setScanProgress({
-        current: 0,
-        total: domains.length,
-        status: 'Checking last activity for each service...'
-      })
-
-      for (let i = 0; i < domains.length; i += 5) {
-        const batch = domains.slice(i, i + 5)
-
-        await Promise.all(batch.map(async (domain) => {
-          try {
-            const recentResponse = await fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(`from:${domain}`)}&maxResults=1`,
-              { headers: { Authorization: `Bearer ${accessToken}` } }
+            const details = await Promise.all(
+              batch.map(msg => adapter.fetchMessageMetadata(provider.accessToken, msg.id))
             )
 
-            if (recentResponse.ok) {
-              const recentData = await recentResponse.json()
-              if (recentData.messages?.length > 0) {
-                const msgResponse = await fetch(
-                  `https://gmail.googleapis.com/gmail/v1/users/me/messages/${recentData.messages[0].id}?format=minimal`,
-                  { headers: { Authorization: `Bearer ${accessToken}` } }
-                )
-                if (msgResponse.ok) {
-                  const msgData = await msgResponse.json()
-                  const service = foundServices.get(domain)
-                  service.lastSeen = parseInt(msgData.internalDate, 10)
+            for (const normalizedMsg of details) {
+              const serviceInfo = extractServiceInfo(normalizedMsg)
+              const key = serviceInfo.domain
+
+              const messageDate = normalizedMsg.date
+              if (!foundServices.has(key)) {
+                foundServices.set(key, {
+                  ...serviceInfo,
+                  id: key,
+                  migrated: false,
+                  firstSeen: messageDate,
+                  lastSeen: messageDate,
+                  count: 1,
+                  isSpam: false,
+                  provider: provider.type,
+                })
+              } else {
+                const existing = foundServices.get(key)
+                existing.count++
+                if (messageDate > existing.lastSeen) {
+                  existing.lastSeen = messageDate
+                }
+                if (messageDate < existing.firstSeen) {
+                  existing.firstSeen = messageDate
                 }
               }
             }
-          } catch (err) {
-            console.error(`Failed to get recent activity for ${domain}:`, err)
           }
-        }))
 
+          await new Promise(r => setTimeout(r, 100))
+        }
+
+        // Second pass: get most recent email from each domain for this provider
+        const domains = Array.from(foundServices.keys())
         setScanProgress({
-          current: Math.min(i + 5, domains.length),
+          current: 0,
           total: domains.length,
-          status: 'Checking last activity for each service...'
+          status: `Checking last activity (${provider.type})...`
         })
 
-        await new Promise(r => setTimeout(r, 100))
+        for (let i = 0; i < domains.length; i += 5) {
+          const batch = domains.slice(i, i + 5)
+
+          await Promise.all(batch.map(async (domain) => {
+            try {
+              const recent = await adapter.fetchRecentFromDomain(provider.accessToken, domain)
+              if (recent) {
+                const service = foundServices.get(domain)
+                if (recent.date > service.lastSeen) {
+                  service.lastSeen = recent.date
+                }
+              }
+            } catch (err) {
+              console.error(`Failed to get recent activity for ${domain}:`, err)
+            }
+          }))
+
+          setScanProgress({
+            current: Math.min(i + 5, domains.length),
+            total: domains.length,
+            status: `Checking last activity (${provider.type})...`
+          })
+
+          await new Promise(r => setTimeout(r, 100))
+        }
       }
 
       // Merge with existing services (preserve migration status)
@@ -249,7 +236,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
         trackHits(hits)
       }
 
-      setScanProgress({ current: searchQueries.length, total: searchQueries.length, status: 'Scan complete!' })
+      setScanProgress({ current: totalQueries, total: totalQueries, status: 'Scan complete!' })
     } catch (err) {
       setError(err.message)
     } finally {
@@ -445,7 +432,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     setGroupByDomain,
     searchQuery,
     setSearchQuery,
-    scanGmail,
+    scanInbox,
     toggleMigrated,
     clearServices,
     exportServices,

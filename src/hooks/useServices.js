@@ -175,8 +175,9 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
             queryHits.set(queryId, (queryHits.get(queryId) || 0) + messages.length)
           }
 
-          for (let j = 0; j < messages.length; j += 10) {
-            const batch = messages.slice(j, j + 10)
+          const batchSize = provider.type === 'outlook' ? 3 : 10
+          for (let j = 0; j < messages.length; j += batchSize) {
+            const batch = messages.slice(j, j + batchSize)
 
             const details = await Promise.all(
               batch.map(msg => adapter.fetchMessageMetadata(provider.accessToken, msg.id))
@@ -264,8 +265,9 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
           status: `Checking last activity (${provider.type})...`
         })
 
-        for (let i = 0; i < domains.length; i += 5) {
-          const batch = domains.slice(i, i + 5)
+        const domainBatchSize = provider.type === 'outlook' ? 2 : 5
+        for (let i = 0; i < domains.length; i += domainBatchSize) {
+          const batch = domains.slice(i, i + domainBatchSize)
 
           await Promise.all(batch.map(async (domain) => {
             try {
@@ -282,7 +284,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
           }))
 
           setScanProgress({
-            current: Math.min(i + 5, domains.length),
+            current: Math.min(i + domainBatchSize, domains.length),
             total: domains.length,
             status: `Checking last activity (${provider.type})...`
           })

@@ -22,6 +22,7 @@ export function useOutlook() {
   const [outlookAccessToken, setOutlookAccessToken] = useState(null)
   const [outlookEmail, setOutlookEmail] = useState(() => localStorage.getItem('sevr-outlook-email'))
   const msalInstanceRef = useRef(null)
+  const lastTokenRef = useRef(null)
   const [msalReady, setMsalReady] = useState(false)
 
   useEffect(() => {
@@ -45,18 +46,25 @@ export function useOutlook() {
 
   const getAccessToken = useCallback(async () => {
     const instance = msalInstanceRef.current
-    if (!instance) return null
+    if (!instance) return lastTokenRef.current || null
 
     const account = instance.getActiveAccount()
-    if (!account) return null
+    if (!account) return lastTokenRef.current || null
 
     try {
       const response = await instance.acquireTokenSilent({ ...loginRequest, account })
+      lastTokenRef.current = response.accessToken
       return response.accessToken
     } catch {
-      // Silent token acquisition failed, use popup
-      const response = await instance.acquireTokenPopup(loginRequest)
-      return response.accessToken
+      try {
+        // Silent token acquisition failed, use popup
+        const response = await instance.acquireTokenPopup(loginRequest)
+        lastTokenRef.current = response.accessToken
+        return response.accessToken
+      } catch {
+        // Fall back to the token from initial login
+        return lastTokenRef.current || null
+      }
     }
   }, [])
 
@@ -69,6 +77,7 @@ export function useOutlook() {
       instance.setActiveAccount(response.account)
       setIsOutlookConnected(true)
       setOutlookAccessToken(response.accessToken)
+      lastTokenRef.current = response.accessToken
       setOutlookEmail(response.account.username)
       localStorage.setItem('sevr-outlook-email', response.account.username)
     } catch (err) {

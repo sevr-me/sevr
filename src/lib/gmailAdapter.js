@@ -38,6 +38,7 @@ export const gmailAdapter = {
       subject: subjectHeader,
       date: parseInt(message.internalDate, 10),
       rawFrom: fromHeader,
+      labelIds: message.labelIds || [],
     }
   },
 

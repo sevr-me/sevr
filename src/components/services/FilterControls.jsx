@@ -11,6 +11,8 @@ export function FilterControls({
   setInactiveYears,
   groupByDomain,
   setGroupByDomain,
+  hideUnsure,
+  setHideUnsure,
 }) {
   return (
     <div className="flex flex-col gap-2 text-sm">
@@ -53,6 +55,17 @@ export function FilterControls({
         />
         <Label htmlFor="groupByDomain" className="text-muted-foreground cursor-pointer">
           Group by main domain
+        </Label>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="hideUnsure"
+          checked={hideUnsure}
+          onCheckedChange={setHideUnsure}
+        />
+        <Label htmlFor="hideUnsure" className="text-muted-foreground cursor-pointer">
+          Hide uncertain results
         </Label>
       </div>
     </div>

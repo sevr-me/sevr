@@ -151,6 +151,10 @@ function App() {
     setGroupByDomain,
     searchQuery,
     setSearchQuery,
+    hideUnsure,
+    setHideUnsure,
+    scanSettings,
+    updateScanSettings,
     scanInbox,
     toggleMigrated,
     clearServices,
@@ -360,6 +364,8 @@ function App() {
                 setInactiveYears={setInactiveYears}
                 groupByDomain={groupByDomain}
                 setGroupByDomain={setGroupByDomain}
+                hideUnsure={hideUnsure}
+                setHideUnsure={setHideUnsure}
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
                 onToggleMigrated={toggleMigrated}
@@ -464,6 +470,8 @@ function App() {
         isEnabled={isQueryEnabled}
         enabledCount={enabledQueryCount}
         authUser={authUser}
+        scanSettings={scanSettings}
+        onUpdateScanSettings={updateScanSettings}
       />
 
       <GuideModal

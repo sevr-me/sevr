@@ -450,6 +450,21 @@ if (queryCount.count === 0) {
     'subject:"activate your account"',
     'subject:"confirm your account"',
     'subject:"verify your account"',
+    'subject:"thanks for signing up"',
+    'subject:"thanks for registering"',
+    'subject:"your account is ready"',
+    'subject:"complete your registration"',
+    'subject:"email verification"',
+    'subject:"please verify"',
+    'subject:"one more step"',
+    'subject:"successfully registered"',
+    'subject:"thank you for joining"',
+    'subject:"welcome aboard"',
+    'subject:"confirm your registration"',
+    'subject:"set up your account"',
+    'subject:"finish setting up"',
+    'subject:"complete your profile"',
+    'subject:"your registration"',
   ];
   const insertQuery = db.prepare('INSERT INTO search_queries (query, added_at, approved) VALUES (?, ?, 1)');
   const now = new Date().toISOString();

@@ -19,25 +19,45 @@ export const SEARCH_QUERIES = [
   'subject:"verify your account"',
 ]
 
-// Patterns that indicate likely spam/marketing emails
-export const SPAM_PATTERNS = [
-  /noreply/i,
-  /no-reply/i,
-  /newsletter/i,
-  /marketing/i,
-  /promo/i,
-  /deals/i,
-  /offers/i,
-  /unsubscribe/i,
-  /bulk/i,
-  /campaign/i,
-  /mailer/i,
-  /notifications?@/i,
-  /updates?@/i,
-  /news@/i,
-  /info@/i,
-  /hello@/i,
-  /support@/i,
+// Sender prefix taxonomy for confidence scoring
+export const SENDER_TAXONOMY = {
+  transactional: [
+    'noreply', 'no-reply', 'no_reply', 'donotreply', 'do-not-reply',
+    'account', 'accounts', 'verify', 'verification', 'confirm',
+    'security', 'auth', 'register', 'registration', 'signup',
+    'welcome', 'support', 'help', 'team', 'admin',
+  ],
+  marketing: [
+    'newsletter', 'marketing', 'promo', 'promotions', 'deals',
+    'offers', 'news', 'digest', 'campaign', 'mailer',
+    'bulk', 'blast', 'announce', 'updates', 'notifications',
+    'hello', 'info', 'contact',
+  ],
+}
+
+// Strong signup indicators (verification, confirmation, activation)
+export const STRONG_SIGNUP_PATTERNS = [
+  /verify your (email|account)/i,
+  /confirm your (email|account|registration)/i,
+  /activate your account/i,
+  /email verification/i,
+  /please verify/i,
+  /complete your registration/i,
+  /one more step/i,
+  /successfully registered/i,
+  /thanks for (signing up|registering)/i,
+  /confirm your registration/i,
+  /set up your account/i,
+  /finish setting up/i,
+]
+
+// Known ESP / marketing infrastructure domains
+export const MARKETING_DOMAINS = [
+  'mailchimp.com', 'sendgrid.net', 'constantcontact.com',
+  'klaviyo.com', 'mailgun.org', 'mailgun.com', 'sendinblue.com',
+  'brevo.com', 'hubspot.com', 'mailjet.com', 'postmarkapp.com',
+  'mandrillapp.com', 'sparkpostmail.com', 'campaignmonitor.com',
+  'convertkit.com', 'drip.com', 'activecampaign.com',
 ]
 
 // Known service patterns for better detection

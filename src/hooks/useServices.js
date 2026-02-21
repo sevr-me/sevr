@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { api } from '@/lib/api'
-import { extractServiceInfo } from '@/lib/gmail'
+import { extractServiceInfo, classifySender, isStrongSignupQuery, isMarketingDomain, computeConfidence } from '@/lib/gmail'
 import { getAdapter } from '@/lib/mailProvider'
 
 // Extract main domain from full domain (e.g., mail.google.com -> google.com)
@@ -54,6 +54,24 @@ function fuzzyMatch(pattern, text) {
   return patternIdx === pattern.length ? score : -1
 }
 
+// Determine category signal from Gmail labelIds or Outlook classification
+function getCategorySignal(metadata, providerType) {
+  if (providerType === 'gmail') {
+    const labels = metadata.labelIds || []
+    if (labels.includes('CATEGORY_PROMOTIONS')) return 'promotions'
+    if (labels.includes('CATEGORY_UPDATES')) return 'updates'
+    // If no promotion label, treat as primary/updates (positive signal)
+    if (!labels.includes('CATEGORY_PROMOTIONS') && !labels.includes('CATEGORY_SOCIAL') && !labels.includes('CATEGORY_FORUMS')) {
+      return 'updates'
+    }
+  } else if (providerType === 'outlook') {
+    const classification = metadata.classification || 'focused'
+    if (classification === 'other') return 'promotions'
+    return 'updates' // 'focused' = positive signal
+  }
+  return null
+}
+
 export function useServices(encryptionKey, encryptionStatus, saveEncryptedServices, searchQueries = [], trackHits = null) {
   const [services, setServices] = useState(() => {
     const saved = localStorage.getItem('sevr-services')
@@ -67,6 +85,23 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
   const [hideInactive, setHideInactive] = useState(true)
   const [groupByDomain, setGroupByDomain] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [hideUnsure, setHideUnsure] = useState(false)
+
+  // Detection settings (individually toggleable)
+  const [scanSettings, setScanSettings] = useState(() => {
+    const saved = localStorage.getItem('sevr-scan-settings')
+    return saved ? JSON.parse(saved) : {
+      categoryFilter: true,
+      senderAnalysis: true,
+      temporalDetection: true,
+    }
+  })
+
+  // Persist scan settings
+  const updateScanSettings = useCallback((newSettings) => {
+    setScanSettings(newSettings)
+    localStorage.setItem('sevr-scan-settings', JSON.stringify(newSettings))
+  }, [])
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState(new Set())
@@ -107,6 +142,8 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     setScanProgress({ current: 0, total: totalQueries, status: 'Starting scan...' })
 
     const foundServices = new Map()
+    // Track signals per domain for confidence scoring
+    const domainSignals = new Map()
     const queryHits = new Map()
     let queryIndex = 0
 
@@ -122,6 +159,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
           const queryObj = searchQueries[i]
           const query = queryObj.query || queryObj
           const queryId = queryObj.id
+          const isStrong = isStrongSignupQuery(query)
 
           queryIndex++
           setScanProgress({
@@ -160,6 +198,18 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
                   isSpam: false,
                   provider: provider.type,
                 })
+                // Initialize signals for this domain
+                domainSignals.set(key, {
+                  strongSubject: false,
+                  weakSubject: false,
+                  transactionalSender: false,
+                  marketingSender: false,
+                  updatesCategory: false,
+                  promotionsCategory: false,
+                  espDomain: false,
+                  firstEmailMatch: false,
+                  matchedEmailDate: messageDate,
+                })
               } else {
                 const existing = foundServices.get(key)
                 existing.count++
@@ -168,6 +218,36 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
                 }
                 if (messageDate < existing.firstSeen) {
                   existing.firstSeen = messageDate
+                  // Track the oldest matched email date for temporal signal
+                  const signals = domainSignals.get(key)
+                  if (signals) signals.matchedEmailDate = messageDate
+                }
+              }
+
+              // Accumulate signals for this domain
+              const signals = domainSignals.get(key)
+              if (signals) {
+                // Subject strength
+                if (isStrong) signals.strongSubject = true
+                else signals.weakSubject = true
+
+                // Sender classification
+                if (scanSettings.senderAnalysis) {
+                  const senderType = classifySender(normalizedMsg.from.email)
+                  if (senderType === 'transactional') signals.transactionalSender = true
+                  if (senderType === 'marketing') signals.marketingSender = true
+                }
+
+                // Category from provider metadata
+                if (scanSettings.categoryFilter) {
+                  const category = getCategorySignal(normalizedMsg, provider.type)
+                  if (category === 'updates') signals.updatesCategory = true
+                  if (category === 'promotions') signals.promotionsCategory = true
+                }
+
+                // ESP domain check
+                if (scanSettings.senderAnalysis && isMarketingDomain(key)) {
+                  signals.espDomain = true
                 }
               }
             }
@@ -211,6 +291,32 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
         }
       }
 
+      // Compute confidence scores for each service
+      for (const [key, service] of foundServices) {
+        const signals = domainSignals.get(key)
+        if (signals) {
+          // Temporal signal: if the matched email is the first email from this domain
+          if (scanSettings.temporalDetection) {
+            // If firstSeen equals the matched email date, the signup email is the first we found from this domain
+            if (service.firstSeen === signals.matchedEmailDate) {
+              signals.firstEmailMatch = true
+            }
+          }
+
+          service.confidence = computeConfidence(signals)
+          service.signals = {
+            strongSubject: signals.strongSubject,
+            weakSubject: signals.weakSubject,
+            transactionalSender: signals.transactionalSender,
+            marketingSender: signals.marketingSender,
+            updatesCategory: signals.updatesCategory,
+            promotionsCategory: signals.promotionsCategory,
+            espDomain: signals.espDomain,
+            firstEmailMatch: signals.firstEmailMatch,
+          }
+        }
+      }
+
       // Merge with existing services (preserve migration status)
       const mergedServices = []
       const prevMap = new Map(services.map(s => [s.domain || s.id, s]))
@@ -242,7 +348,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     } finally {
       setIsLoading(false)
     }
-  }, [services, saveServices, searchQueries, trackHits])
+  }, [services, saveServices, searchQueries, trackHits, scanSettings])
 
   const toggleMigrated = useCallback((serviceId) => {
     setServices(prev => {
@@ -366,6 +472,11 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
       mainDomain: getMainDomain(s.domain)
     }))
 
+    // Filter out low-confidence services if hideUnsure is enabled
+    if (hideUnsure) {
+      filtered = filtered.filter(s => !s.confidence || s.confidence.level !== 'low')
+    }
+
     // Apply fuzzy search filter
     if (searchQuery.trim()) {
       filtered = filtered
@@ -409,7 +520,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     }
 
     return filtered
-  }, [services, hideInactive, spamToEnd, groupByDomain, isInactive, searchQuery])
+  }, [services, hideInactive, hideUnsure, spamToEnd, groupByDomain, isInactive, searchQuery])
 
   const activeServices = services.filter(s => !s.ignored)
   const migratedCount = activeServices.filter(s => s.migrated).length
@@ -432,6 +543,10 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     setGroupByDomain,
     searchQuery,
     setSearchQuery,
+    hideUnsure,
+    setHideUnsure,
+    scanSettings,
+    updateScanSettings,
     scanInbox,
     toggleMigrated,
     clearServices,

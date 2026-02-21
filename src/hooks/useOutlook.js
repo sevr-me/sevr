@@ -85,16 +85,14 @@ export function useOutlook() {
     }
   }, [])
 
-  const handleDisconnectOutlook = useCallback(async () => {
+  const handleDisconnectOutlook = useCallback(() => {
     const instance = msalInstanceRef.current
-    if (!instance) return
-
-    try {
-      await instance.logoutPopup()
-    } catch (err) {
-      console.error('Outlook logout failed:', err)
+    if (instance) {
+      const account = instance.getActiveAccount()
+      if (account) instance.clearCache({ account })
     }
 
+    lastTokenRef.current = null
     setOutlookAccessToken(null)
     setIsOutlookConnected(false)
     setOutlookEmail(null)

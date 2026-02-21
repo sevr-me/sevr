@@ -1,12 +1,12 @@
 const GRAPH_API = 'https://graph.microsoft.com/v1.0/me'
 
-async function graphFetch(url, accessToken, retries = 2) {
+async function graphFetch(url, accessToken, retries = 5) {
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
 
   if (response.status === 429 && retries > 0) {
-    const retryAfter = parseInt(response.headers.get('Retry-After') || '2', 10)
+    const retryAfter = parseInt(response.headers.get('Retry-After') || '3', 10)
     await new Promise(r => setTimeout(r, retryAfter * 1000))
     return graphFetch(url, accessToken, retries - 1)
   }
@@ -16,8 +16,11 @@ async function graphFetch(url, accessToken, retries = 2) {
 
 export const outlookAdapter = {
   async searchMessages(accessToken, query, maxResults = 100) {
+    // Convert Gmail-style queries (subject:"phrase") to KQL for Graph API.
+    // KQL inside $search="..." uses single quotes for phrases.
+    const kqlQuery = query.replace(/"/g, "'")
     const response = await graphFetch(
-      `${GRAPH_API}/messages?$search="${encodeURIComponent(query)}"&$top=${maxResults}&$select=id`,
+      `${GRAPH_API}/messages?$search="${encodeURIComponent(kqlQuery)}"&$top=${maxResults}&$select=id`,
       accessToken
     )
 

@@ -74,7 +74,7 @@ export function ServiceCard({
 
           <a
             href={service.provider === 'outlook'
-              ? `https://outlook.live.com/mail/0/search?query=from%3A${encodeURIComponent(service.domain)}`
+              ? `https://outlook.office.com/mail/0/`
               : `https://mail.google.com/mail/u/0/#search/from%3A${encodeURIComponent(service.domain)}`}
             target="_blank"
             rel="noopener noreferrer"

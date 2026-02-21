@@ -1,14 +1,64 @@
-import { SPAM_PATTERNS, SERVICE_PATTERNS } from './constants'
+import { SENDER_TAXONOMY, STRONG_SIGNUP_PATTERNS, MARKETING_DOMAINS, SERVICE_PATTERNS } from './constants'
 
-// Check if an email/domain is likely spam
-export function isLikelySpam(email, domain) {
-  // Check email patterns
-  for (const pattern of SPAM_PATTERNS) {
-    if (pattern.test(email)) return true
+// Classify a sender email prefix as transactional, marketing, or neutral
+export function classifySender(email) {
+  if (!email) return 'neutral'
+  const prefix = email.split('@')[0].toLowerCase()
+
+  for (const txPrefix of SENDER_TAXONOMY.transactional) {
+    if (prefix === txPrefix || prefix.startsWith(txPrefix + '+') || prefix.startsWith(txPrefix + '.')) {
+      return 'transactional'
+    }
   }
-  // Generic marketing domains
-  const spamDomains = ['mailchimp.com', 'sendgrid.net', 'constantcontact.com', 'klaviyo.com', 'mailgun.org']
-  return spamDomains.some(d => domain.includes(d))
+
+  for (const mktPrefix of SENDER_TAXONOMY.marketing) {
+    if (prefix === mktPrefix || prefix.startsWith(mktPrefix + '+') || prefix.startsWith(mktPrefix + '.')) {
+      return 'marketing'
+    }
+  }
+
+  return 'neutral'
+}
+
+// Check if a query string matches a strong signup pattern
+export function isStrongSignupQuery(query) {
+  // Extract the subject text from the query (e.g. 'subject:"verify your email"' -> 'verify your email')
+  const match = query.match(/subject:"([^"]+)"/)
+  const text = match ? match[1] : query
+  return STRONG_SIGNUP_PATTERNS.some(pattern => pattern.test(text))
+}
+
+// Check if a domain belongs to a known marketing ESP
+export function isMarketingDomain(domain) {
+  if (!domain) return false
+  return MARKETING_DOMAINS.some(d => domain.endsWith(d))
+}
+
+// Compute confidence score from multiple signals
+// signals: { strongSubject, weakSubject, transactionalSender, marketingSender,
+//            updatesCategory, promotionsCategory, espDomain, firstEmailMatch }
+export function computeConfidence(signals) {
+  let score = 0
+
+  if (signals.strongSubject) score += 35
+  else if (signals.weakSubject) score += 20
+
+  if (signals.transactionalSender) score += 15
+  if (signals.updatesCategory) score += 15
+  if (signals.promotionsCategory) score -= 20
+  if (signals.marketingSender) score -= 25
+  if (signals.espDomain) score -= 40
+  if (signals.firstEmailMatch) score += 15
+
+  // Clamp to 0-100
+  score = Math.max(0, Math.min(100, score))
+
+  let level
+  if (score >= 50) level = 'high'
+  else if (score >= 25) level = 'medium'
+  else level = 'low'
+
+  return { score, level }
 }
 
 // Extract service info from normalized message { from: { name, email }, subject, rawFrom }

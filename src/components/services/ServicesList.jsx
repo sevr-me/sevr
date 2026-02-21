@@ -19,6 +19,8 @@ export function ServicesList({
   setInactiveYears,
   groupByDomain,
   setGroupByDomain,
+  hideUnsure,
+  setHideUnsure,
   searchQuery,
   setSearchQuery,
   onToggleMigrated,
@@ -59,6 +61,8 @@ export function ServicesList({
           setInactiveYears={setInactiveYears}
           groupByDomain={groupByDomain}
           setGroupByDomain={setGroupByDomain}
+          hideUnsure={hideUnsure}
+          setHideUnsure={setHideUnsure}
         />
       </div>
 

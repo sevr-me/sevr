@@ -94,6 +94,12 @@ export function ServiceCard({
           </Badge>
         )}
 
+        {service.confidence?.level === 'low' && (
+          <Badge variant="secondary" className="text-xs h-5 px-1.5">
+            unsure
+          </Badge>
+        )}
+
         {service.isInactive && (
           <Badge variant="secondary" className="text-xs h-5 px-1.5">
             inactive

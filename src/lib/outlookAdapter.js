@@ -31,7 +31,7 @@ export const outlookAdapter = {
 
   async fetchMessageMetadata(accessToken, messageId) {
     const response = await graphFetch(
-      `${GRAPH_API}/messages/${messageId}?$select=id,from,subject,receivedDateTime`,
+      `${GRAPH_API}/messages/${messageId}?$select=id,from,subject,receivedDateTime,inferenceClassification`,
       accessToken
     )
     const msg = await response.json()
@@ -47,6 +47,7 @@ export const outlookAdapter = {
       subject: msg.subject || '',
       date: new Date(msg.receivedDateTime).getTime(),
       rawFrom,
+      classification: msg.inferenceClassification || 'focused',
     }
   },
 

@@ -6,12 +6,12 @@
 /____/_____/  |___/_/ |_|
 ```
 
-A privacy-first tool to discover all services linked to your Gmail account. Scanning happens entirely in your browser — your emails never leave your device.
+A privacy-first tool to discover all services linked to your email. Supports Gmail and Outlook/Office 365. Scanning happens entirely in your browser — your emails never leave your device.
 
 ## Features
 
-- **Gmail Scanning**: Discovers services from verification, welcome, and password reset emails
-- **Privacy First**: Gmail API calls go directly from your browser to Google — emails never touch the server
+- **Inbox Scanning**: Discovers services from verification, welcome, and password reset emails (Gmail + Outlook)
+- **Privacy First**: API calls go directly from your browser to Google/Microsoft — emails never touch the server
 - **End-to-End Encryption**: Your service list is encrypted in your browser before syncing
 - **Community Guides**: User-contributed guides for changing email on each service
 - **Admin Dashboard**: Monitor signups, user stats, and activity in real-time
@@ -19,7 +19,8 @@ A privacy-first tool to discover all services linked to your Gmail account. Scan
 ## Requirements
 
 - Node.js 18+
-- A Google Cloud project with Gmail API enabled
+- A Google Cloud project with Gmail API enabled (for Gmail scanning)
+- A Microsoft Entra app registration (for Outlook/Office 365 scanning)
 - A domain with HTTPS (for production)
 - Optional: [Resend](https://resend.com) account for sending OTP emails
 
@@ -53,6 +54,41 @@ Before running the app, you need to configure Google OAuth:
    ```
    VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
    ```
+
+## Microsoft Entra ID Setup (Outlook / Office 365)
+
+To enable Outlook, Hotmail, Live, and Office 365 mailbox scanning:
+
+1. Go to the [Microsoft Entra admin center](https://entra.microsoft.com/) (formerly Azure AD) and sign in
+
+2. Register a new application:
+   - Navigate to **Identity** → **Applications** → **App registrations**
+   - Click **New registration**
+   - Name: `SEVR` (or your choice)
+   - Supported account types: **Accounts in any organizational directory and personal Microsoft accounts**
+   - Redirect URI: Select **Single-page application (SPA)** and enter:
+     - `http://localhost:5173` (development)
+   - Click **Register**
+
+3. Copy the **Application (client) ID** from the overview page
+
+4. Configure API permissions:
+   - Go to **API permissions** → **Add a permission**
+   - Select **Microsoft Graph** → **Delegated permissions**
+   - Add: `Mail.Read` and `User.Read`
+   - Click **Add permissions**
+   - These are delegated (user-consented) permissions and do not require admin consent
+
+5. Add redirect URIs for production:
+   - Go to **Authentication**
+   - Under **Single-page application** redirect URIs, add your production URL (e.g., `https://yourdomain.com`)
+
+6. Add the Client ID to your environment:
+   ```
+   VITE_MICROSOFT_CLIENT_ID=your-application-client-id
+   ```
+
+Both providers are optional — you can configure just Gmail, just Outlook, or both. Users can connect multiple providers simultaneously and scan results are merged.
 
 ## Development
 
@@ -100,6 +136,7 @@ Edit `.env` (frontend):
 
 ```bash
 VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+VITE_MICROSOFT_CLIENT_ID=your-application-client-id
 ```
 
 Edit `server/.env` (backend):
@@ -208,9 +245,11 @@ docker compose --profile tunnel up -d
 
 The `--profile tunnel` flag enables the cloudflared service. Without it, only the app runs (useful for local development or if using a different reverse proxy).
 
-#### 4. Update Google OAuth
+#### 4. Update OAuth redirect URIs
 
-Add your tunnel hostname (e.g., `https://sevr.yourdomain.com`) to the authorized JavaScript origins in Google Cloud Console.
+Add your tunnel hostname (e.g., `https://sevr.yourdomain.com`) to:
+- Google Cloud Console → authorized JavaScript origins
+- Microsoft Entra → Authentication → SPA redirect URIs
 
 ### 5. Configure reverse proxy
 
@@ -258,9 +297,11 @@ To pull updates and redeploy:
 
 This pulls from git, reinstalls dependencies, rebuilds the frontend, and restarts PM2.
 
-### 7. Update Google OAuth
+### 7. Update OAuth redirect URIs
 
-Add your production domain to the authorized JavaScript origins in Google Cloud Console.
+Add your production domain to:
+- Google Cloud Console → authorized JavaScript origins
+- Microsoft Entra → Authentication → SPA redirect URIs
 
 ## Environment Variables
 
@@ -268,7 +309,10 @@ Add your production domain to the authorized JavaScript origins in Google Cloud 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `VITE_GOOGLE_CLIENT_ID` | Yes | Google OAuth Client ID |
+| `VITE_GOOGLE_CLIENT_ID` | No* | Google OAuth Client ID (for Gmail scanning) |
+| `VITE_MICROSOFT_CLIENT_ID` | No* | Microsoft Entra Application ID (for Outlook scanning) |
+
+*At least one provider is required.
 
 **Backend** (`server/.env`):
 
@@ -303,10 +347,10 @@ Admins cannot access individual user data or encrypted content.
 
 ## Security
 
-**Gmail Access**
-- Read-only access to email metadata (sender, subject)
-- OAuth token stays in browser, never sent to backend
-- API calls go directly to Google
+**Email Access (Gmail & Outlook)**
+- Read-only access to email metadata (sender, subject, categories)
+- OAuth tokens stay in browser, never sent to backend
+- API calls go directly to Google/Microsoft
 
 **End-to-End Encryption**
 - Key derived from password using PBKDF2 (100,000 iterations)
@@ -320,7 +364,7 @@ Admins cannot access individual user data or encrypted content.
 - Community guides (shared, unencrypted)
 
 **Not Stored**
-- Gmail tokens
+- Gmail/Outlook tokens
 - Email content
 - Encryption passwords
 

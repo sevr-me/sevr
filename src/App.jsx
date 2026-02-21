@@ -18,6 +18,7 @@ import { EncryptionModal } from '@/components/encryption/EncryptionModal'
 import { FaqModal } from '@/components/faq/FaqModal'
 import { PrivacyModal } from '@/components/privacy/PrivacyModal'
 import { GuideModal } from '@/components/guides/GuideModal'
+import { ServiceDetailsModal } from '@/components/services/ServiceDetailsModal'
 import { SearchQueriesModal } from '@/components/queries/SearchQueriesModal'
 import { AdminDashboard } from '@/components/admin/AdminDashboard'
 import { ConnectProvider } from '@/components/scanner/ConnectProvider'
@@ -31,6 +32,7 @@ function App() {
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [showQueries, setShowQueries] = useState(false)
+  const [detailsService, setDetailsService] = useState(null)
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme')
     return saved ? saved === 'dark' : true // Default to dark
@@ -371,6 +373,7 @@ function App() {
                 onToggleMigrated={toggleMigrated}
                 onViewGuide={(service) => openGuide(service, false)}
                 onAddGuide={(service) => openGuide(service, true)}
+                onViewDetails={setDetailsService}
                 // Selection
                 selectedIds={selectedIds}
                 onSelect={handleSelect}
@@ -472,6 +475,11 @@ function App() {
         authUser={authUser}
         scanSettings={scanSettings}
         onUpdateScanSettings={updateScanSettings}
+      />
+
+      <ServiceDetailsModal
+        service={detailsService}
+        onClose={() => setDetailsService(null)}
       />
 
       <GuideModal

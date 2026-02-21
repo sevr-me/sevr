@@ -11,6 +11,7 @@ export function ServiceCard({
   onSelect,
   onViewGuide,
   onAddGuide,
+  onViewDetails,
 }) {
   const guide = communityGuides[service.domain]
   const settingsUrl = guide?.settingsUrl || service.guide
@@ -136,6 +137,12 @@ export function ServiceCard({
               </a>
             </Button>
           ) : null}
+
+          {service.messages?.length > 0 && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onViewDetails(service)}>
+              Details
+            </Button>
+          )}
 
           {guide?.content || guide?.noChangePossible ? (
             <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => onViewGuide(service)}>

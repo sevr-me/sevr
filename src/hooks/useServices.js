@@ -198,6 +198,7 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
                   count: 1,
                   isSpam: false,
                   provider: provider.type,
+                  messages: [{ from: normalizedMsg.rawFrom, subject: normalizedMsg.subject, date: messageDate }],
                 })
                 // Initialize signals for this domain
                 domainSignals.set(key, {
@@ -214,6 +215,9 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
               } else {
                 const existing = foundServices.get(key)
                 existing.count++
+                if (existing.messages.length < 20) {
+                  existing.messages.push({ from: normalizedMsg.rawFrom, subject: normalizedMsg.subject, date: messageDate })
+                }
                 if (messageDate > existing.lastSeen) {
                   existing.lastSeen = messageDate
                 }

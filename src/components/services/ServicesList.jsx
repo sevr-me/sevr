@@ -26,6 +26,7 @@ export function ServicesList({
   onToggleMigrated,
   onViewGuide,
   onAddGuide,
+  onViewDetails,
   // Selection props
   selectedIds,
   onSelect,
@@ -137,6 +138,7 @@ export function ServicesList({
             onSelect={(id, shiftKey) => onSelect(id, services, shiftKey)}
             onViewGuide={onViewGuide}
             onAddGuide={onAddGuide}
+            onViewDetails={onViewDetails}
           />
         ))}
       </div>

@@ -14,8 +14,27 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 const faqItems = [
   {
+    question: 'How are services discovered?',
+    answer: `We search your inbox for emails that look like signup confirmations — things like "verify your email", "welcome to", "activate your account", and about 25 other phrases. For each match, we extract the sender domain and build a list of services you've signed up for.
+
+To reduce false positives, each result gets a confidence score based on multiple signals:
+• Subject strength — verification/confirmation emails score higher than generic "welcome" emails
+• Sender type — transactional senders (noreply@, account@) boost confidence; marketing senders (newsletter@, promo@) lower it
+• Email category — emails in Gmail's Updates or Outlook's Focused inbox score higher; Promotions/Other score lower
+• Known marketing domains — emails from bulk senders like Mailchimp or SendGrid are penalized
+• First-email detection — if the matched email is the very first one from that domain, it's more likely a real signup
+
+Services with low confidence are marked "unsure" and can be hidden with the "Hide uncertain results" filter. You can also toggle individual detection signals in the Search Phrases modal under Detection Settings.`,
+  },
+  {
     question: 'How does Gmail access work?',
     answer: `We use Google's official OAuth2 to request read-only access to your inbox. The access token stays in your browser and is used to directly call Gmail's API. Your emails are never sent to our server — all scanning happens locally in your browser.`,
+  },
+  {
+    question: 'How does Outlook/Office 365 access work?',
+    answer: `We use Microsoft's official authentication (MSAL) to request read-only access to your mailbox. This works with Outlook.com, Hotmail, Live, and Office 365 accounts. Like Gmail, the access token stays in your browser and is used to call the Microsoft Graph API directly. Your emails are never sent to our server.
+
+You can connect both Gmail and Outlook at the same time — scan results from both providers are merged into a single list. Each service shows which provider it was found in.`,
   },
   {
     question: 'What data is stored on the server?',

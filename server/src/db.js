@@ -436,37 +436,36 @@ try {
   // Column already exists
 }
 
-// Insert default queries if table is empty
-const queryCount = db.prepare('SELECT COUNT(*) as count FROM search_queries').get();
-if (queryCount.count === 0) {
-  const defaultQueries = [
-    'subject:"verify your email"',
-    'subject:"confirm your email"',
-    'subject:"welcome to"',
-    'subject:"account created"',
-    'subject:"password reset"',
-    'subject:"reset your password"',
-    'subject:"sign up"',
-    'subject:"activate your account"',
-    'subject:"confirm your account"',
-    'subject:"verify your account"',
-    'subject:"thanks for signing up"',
-    'subject:"thanks for registering"',
-    'subject:"your account is ready"',
-    'subject:"complete your registration"',
-    'subject:"email verification"',
-    'subject:"please verify"',
-    'subject:"one more step"',
-    'subject:"successfully registered"',
-    'subject:"thank you for joining"',
-    'subject:"welcome aboard"',
-    'subject:"confirm your registration"',
-    'subject:"set up your account"',
-    'subject:"finish setting up"',
-    'subject:"complete your profile"',
-    'subject:"your registration"',
-  ];
-  const insertQuery = db.prepare('INSERT INTO search_queries (query, added_at, approved) VALUES (?, ?, 1)');
+// Ensure all default queries exist (uses INSERT OR IGNORE so existing ones are skipped)
+const defaultQueries = [
+  'subject:"verify your email"',
+  'subject:"confirm your email"',
+  'subject:"welcome to"',
+  'subject:"account created"',
+  'subject:"password reset"',
+  'subject:"reset your password"',
+  'subject:"sign up"',
+  'subject:"activate your account"',
+  'subject:"confirm your account"',
+  'subject:"verify your account"',
+  'subject:"thanks for signing up"',
+  'subject:"thanks for registering"',
+  'subject:"your account is ready"',
+  'subject:"complete your registration"',
+  'subject:"email verification"',
+  'subject:"please verify"',
+  'subject:"one more step"',
+  'subject:"successfully registered"',
+  'subject:"thank you for joining"',
+  'subject:"welcome aboard"',
+  'subject:"confirm your registration"',
+  'subject:"set up your account"',
+  'subject:"finish setting up"',
+  'subject:"complete your profile"',
+  'subject:"your registration"',
+];
+{
+  const insertQuery = db.prepare('INSERT OR IGNORE INTO search_queries (query, added_at, approved) VALUES (?, ?, 1)');
   const now = new Date().toISOString();
   for (const q of defaultQueries) {
     insertQuery.run(q, now);

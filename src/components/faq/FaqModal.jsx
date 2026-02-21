@@ -15,7 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 const faqItems = [
   {
     question: 'How are services discovered?',
-    answer: `We search your inbox for emails that look like signup confirmations — things like "verify your email", "welcome to", "activate your account", and about 25 other phrases. For each match, we extract the sender domain and build a list of services you've signed up for.
+    answer: `We search your inbox for emails that look like signup confirmations using 25 phrases — things like "verify your email", "welcome to", "activate your account", and more. For each match, we extract the sender domain and build a list of services you've signed up for.
 
 To reduce false positives, each result gets a confidence score based on multiple signals:
 • Subject strength — verification/confirmation emails score higher than generic "welcome" emails

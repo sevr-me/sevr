@@ -62,7 +62,7 @@ app.use(rateLimit({
   legacyHeaders: false,
 }));
 
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: '1mb' }));
 
 // Serve static frontend in production
 if (process.env.NODE_ENV === 'production') {

@@ -76,6 +76,34 @@ export function useEncryption() {
     }
   }, [])
 
+  const saveEncryptedSelections = useCallback(async (key, selections) => {
+    try {
+      const encrypted = await encrypt(key, selections)
+      await api('/api/encrypted/selections', {
+        method: 'PUT',
+        body: JSON.stringify({ data: encrypted.data, iv: encrypted.iv }),
+      })
+    } catch (err) {
+      console.error('Failed to save encrypted selections:', err)
+    }
+  }, [])
+
+  const loadEncryptedSelections = useCallback(async (key) => {
+    try {
+      const response = await api('/api/encrypted/selections')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.data && data.iv) {
+          const decrypted = await decrypt(key, { data: data.data, iv: data.iv })
+          return decrypted
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load encrypted selections:', err)
+    }
+    return null
+  }, [])
+
   const handleSetupEncryption = useCallback(async (e, services, setServices) => {
     e.preventDefault()
     setEncryptionError('')
@@ -159,9 +187,32 @@ export function useEncryption() {
       setShowEncryptionModal(false)
       setEncryptionPassword('')
 
-      const services = await loadEncryptedServices(key)
-      if (services && setServices) {
-        setServices(services)
+      const encryptedServices = await loadEncryptedServices(key)
+      const selectionsMap = await loadEncryptedSelections(key)
+
+      if (encryptedServices && setServices) {
+        if (selectionsMap && typeof selectionsMap === 'object') {
+          // Merge: full blob metadata + selections blob wins for flags
+          const merged = encryptedServices.map(s => {
+            const domain = s.domain || s.id
+            const sel = selectionsMap[domain]
+            if (sel) {
+              return {
+                ...s,
+                migrated: sel.migrated ?? s.migrated,
+                ignored: sel.ignored ?? s.ignored,
+                important: sel.important ?? s.important,
+              }
+            }
+            return s
+          })
+
+          setServices(merged)
+          localStorage.setItem('sevr-services', JSON.stringify(merged))
+        } else {
+          setServices(encryptedServices)
+          localStorage.setItem('sevr-services', JSON.stringify(encryptedServices))
+        }
       }
 
       return true
@@ -171,7 +222,7 @@ export function useEncryption() {
     } finally {
       setEncryptionLoading(false)
     }
-  }, [encryptionSalt, encryptionPassword, encryptionVerifier, loadEncryptedServices])
+  }, [encryptionSalt, encryptionPassword, encryptionVerifier, loadEncryptedServices, loadEncryptedSelections])
 
   const handleRecoveryUnlock = useCallback(async (e) => {
     e.preventDefault()
@@ -263,6 +314,7 @@ export function useEncryption() {
     checkEncryptionStatus,
     loadEncryptedServices,
     saveEncryptedServices,
+    saveEncryptedSelections,
     handleSetupEncryption,
     handleUnlockEncryption,
     handleRecoveryUnlock,

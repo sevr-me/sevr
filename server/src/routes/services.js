@@ -94,13 +94,13 @@ router.post('/sync', (req, res) => {
   }
 });
 
-// PATCH /api/services/:id - Update service (e.g., toggle migrated)
+// PATCH /api/services/:id - Toggle migrated status
 router.patch('/:id', (req, res) => {
   const { id } = req.params;
   const { migrated } = req.body;
 
-  if (typeof migrated !== 'boolean') {
-    return res.status(400).json({ error: 'Migrated boolean is required' });
+  if (migrated === undefined) {
+    return res.status(400).json({ error: 'Migrated field is required' });
   }
 
   try {
@@ -119,7 +119,7 @@ router.patch('/:id', (req, res) => {
       category: service.category,
       email: service.email,
       guide: service.guide,
-      migrated,
+      migrated: Boolean(migrated),
       firstSeen: service.first_seen,
     });
   } catch (error) {

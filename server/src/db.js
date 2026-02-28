@@ -37,6 +37,15 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 
+  -- Encrypted selections (E2E encrypted migrated/ignored/important flags)
+  CREATE TABLE IF NOT EXISTS encrypted_selections (
+    user_id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    iv TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
   -- OTP codes
   CREATE TABLE IF NOT EXISTS otp_codes (
     id TEXT PRIMARY KEY,
@@ -283,6 +292,24 @@ export const upsertEncryptedData = db.prepare(`
 
 export const deleteEncryptedData = db.prepare(`
   DELETE FROM encrypted_data WHERE user_id = ?
+`);
+
+// Encrypted selections queries
+export const getEncryptedSelections = db.prepare(`
+  SELECT data, iv, updated_at FROM encrypted_selections WHERE user_id = ?
+`);
+
+export const upsertEncryptedSelections = db.prepare(`
+  INSERT INTO encrypted_selections (user_id, data, iv, updated_at)
+  VALUES (?, ?, ?, ?)
+  ON CONFLICT(user_id) DO UPDATE SET
+    data = excluded.data,
+    iv = excluded.iv,
+    updated_at = excluded.updated_at
+`);
+
+export const deleteEncryptedSelections = db.prepare(`
+  DELETE FROM encrypted_selections WHERE user_id = ?
 `);
 
 // Admin queries

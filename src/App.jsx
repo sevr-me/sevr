@@ -89,6 +89,7 @@ function App() {
     encryptionLoading,
     checkEncryptionStatus,
     saveEncryptedServices,
+    saveEncryptedSelections,
     handleSetupEncryption,
     handleUnlockEncryption,
     handleRecoveryUnlock,
@@ -172,7 +173,7 @@ function App() {
     setMigratedBulk,
     setIgnoredBulk,
     setImportantBulk,
-  } = useServices(encryptionKey, encryptionStatus, saveEncryptedServices, enabledQueries, trackQueryHits)
+  } = useServices(encryptionKey, encryptionStatus, saveEncryptedServices, saveEncryptedSelections, enabledQueries, trackQueryHits)
 
   // Guides hook
   const {

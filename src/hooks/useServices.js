@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react'
-import { api } from '@/lib/api'
 import { extractServiceInfo, classifySender, isStrongSignupQuery, isMarketingDomain, computeConfidence } from '@/lib/gmail'
 import { getAdapter } from '@/lib/mailProvider'
 
@@ -72,7 +71,7 @@ function getCategorySignal(metadata, providerType) {
   return null
 }
 
-export function useServices(encryptionKey, encryptionStatus, saveEncryptedServices, searchQueries = [], trackHits = null) {
+export function useServices(encryptionKey, encryptionStatus, saveEncryptedServices, saveEncryptedSelections, searchQueries = [], trackHits = null) {
   const [services, setServices] = useState(() => {
     const saved = localStorage.getItem('sevr-services')
     return saved ? JSON.parse(saved) : []
@@ -107,8 +106,13 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [lastSelectedId, setLastSelectedId] = useState(null)
 
-  // Save to localStorage and optionally to encrypted server storage
-  const saveServices = useCallback((newServices) => {
+  // Save to localStorage only (used by selection changes — no encrypted PUT)
+  const saveToLocal = useCallback((newServices) => {
+    localStorage.setItem('sevr-services', JSON.stringify(newServices))
+  }, [])
+
+  // Save to localStorage AND encrypted server blob (used after scans)
+  const saveFullBackup = useCallback((newServices) => {
     localStorage.setItem('sevr-services', JSON.stringify(newServices))
 
     if (encryptionKey && encryptionStatus === 'unlocked' && newServices.length > 0) {
@@ -116,17 +120,23 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     }
   }, [encryptionKey, encryptionStatus, saveEncryptedServices])
 
-  // Update service on backend
-  const updateServiceOnBackend = useCallback(async (serviceId, migrated) => {
-    try {
-      await api(`/api/services/${serviceId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ migrated }),
-      })
-    } catch (err) {
-      console.error('Failed to update service on backend:', err)
+  // Keep saveServices as alias for saveFullBackup (backward compat for external callers)
+  const saveServices = saveFullBackup
+
+  // Build selections map from services and save as encrypted blob
+  const saveSelectionsBlob = useCallback((servicesToSave) => {
+    if (!encryptionKey || encryptionStatus !== 'unlocked' || !saveEncryptedSelections) return
+    const selectionsMap = {}
+    for (const s of servicesToSave) {
+      const domain = s.domain || s.id
+      selectionsMap[domain] = {
+        migrated: !!s.migrated,
+        ignored: !!s.ignored,
+        important: !!s.important,
+      }
     }
-  }, [])
+    saveEncryptedSelections(encryptionKey, selectionsMap)
+  }, [encryptionKey, encryptionStatus, saveEncryptedSelections])
 
   const scanInbox = useCallback(async (providers) => {
     if (!providers || providers.length === 0) return
@@ -340,7 +350,8 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
       mergedServices.sort((a, b) => (b.count || 0) - (a.count || 0))
 
       setServices(mergedServices)
-      saveServices(mergedServices)
+      saveFullBackup(mergedServices)
+      saveSelectionsBlob(mergedServices)
 
       // Track query hits
       if (trackHits && queryHits.size > 0) {
@@ -354,21 +365,56 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     } finally {
       setIsLoading(false)
     }
-  }, [services, saveServices, searchQueries, trackHits, scanSettings])
+  }, [services, saveFullBackup, saveSelectionsBlob, searchQueries, trackHits, scanSettings])
 
   const toggleMigrated = useCallback((serviceId) => {
+    let updated
     setServices(prev => {
-      const updated = prev.map(s =>
+      updated = prev.map(s =>
         s.id === serviceId ? { ...s, migrated: !s.migrated } : s
       )
-      const service = updated.find(s => s.id === serviceId)
-      if (service) {
-        updateServiceOnBackend(serviceId, service.migrated)
-      }
-      saveServices(updated)
       return updated
     })
-  }, [updateServiceOnBackend, saveServices])
+    // Side effects outside the updater
+    queueMicrotask(() => {
+      if (updated) {
+        saveToLocal(updated)
+        saveSelectionsBlob(updated)
+      }
+    })
+  }, [saveToLocal, saveSelectionsBlob])
+
+  const toggleIgnored = useCallback((serviceId) => {
+    let updated
+    setServices(prev => {
+      updated = prev.map(s =>
+        s.id === serviceId ? { ...s, ignored: !s.ignored } : s
+      )
+      return updated
+    })
+    queueMicrotask(() => {
+      if (updated) {
+        saveToLocal(updated)
+        saveSelectionsBlob(updated)
+      }
+    })
+  }, [saveToLocal, saveSelectionsBlob])
+
+  const toggleImportant = useCallback((serviceId) => {
+    let updated
+    setServices(prev => {
+      updated = prev.map(s =>
+        s.id === serviceId ? { ...s, important: !s.important } : s
+      )
+      return updated
+    })
+    queueMicrotask(() => {
+      if (updated) {
+        saveToLocal(updated)
+        saveSelectionsBlob(updated)
+      }
+    })
+  }, [saveToLocal, saveSelectionsBlob])
 
   // Selection handlers
   const handleSelect = useCallback((serviceId, sortedServices, shiftKey) => {
@@ -412,37 +458,55 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
 
   // Bulk actions
   const setMigratedBulk = useCallback((migrated) => {
+    let updated
     setServices(prev => {
-      const updated = prev.map(s =>
+      updated = prev.map(s =>
         selectedIds.has(s.id) ? { ...s, migrated } : s
       )
-      saveServices(updated)
       return updated
     })
+    queueMicrotask(() => {
+      if (updated) {
+        saveToLocal(updated)
+        saveSelectionsBlob(updated)
+      }
+    })
     clearSelection()
-  }, [selectedIds, saveServices, clearSelection])
+  }, [selectedIds, saveToLocal, saveSelectionsBlob, clearSelection])
 
   const setIgnoredBulk = useCallback((ignored) => {
+    let updated
     setServices(prev => {
-      const updated = prev.map(s =>
+      updated = prev.map(s =>
         selectedIds.has(s.id) ? { ...s, ignored } : s
       )
-      saveServices(updated)
       return updated
     })
+    queueMicrotask(() => {
+      if (updated) {
+        saveToLocal(updated)
+        saveSelectionsBlob(updated)
+      }
+    })
     clearSelection()
-  }, [selectedIds, saveServices, clearSelection])
+  }, [selectedIds, saveToLocal, saveSelectionsBlob, clearSelection])
 
   const setImportantBulk = useCallback((important) => {
+    let updated
     setServices(prev => {
-      const updated = prev.map(s =>
+      updated = prev.map(s =>
         selectedIds.has(s.id) ? { ...s, important } : s
       )
-      saveServices(updated)
       return updated
     })
+    queueMicrotask(() => {
+      if (updated) {
+        saveToLocal(updated)
+        saveSelectionsBlob(updated)
+      }
+    })
     clearSelection()
-  }, [selectedIds, saveServices, clearSelection])
+  }, [selectedIds, saveToLocal, saveSelectionsBlob, clearSelection])
 
   const clearServices = useCallback(() => {
     if (confirm('Clear all discovered services? This cannot be undone.')) {
@@ -555,6 +619,8 @@ export function useServices(encryptionKey, encryptionStatus, saveEncryptedServic
     updateScanSettings,
     scanInbox,
     toggleMigrated,
+    toggleIgnored,
+    toggleImportant,
     clearServices,
     exportServices,
     getSortedServices,

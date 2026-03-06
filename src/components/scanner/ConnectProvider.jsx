@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 
-export function ConnectProvider({ authUser, tokenClient, onConnectGmail, onConnectOutlook, msalReady }) {
+export function ConnectProvider({ authUser, tokenClient, onConnectGmail, onConnectOutlook, msalReady, gmailError }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 space-y-6">
       <Card className="max-w-lg">
@@ -53,6 +53,10 @@ export function ConnectProvider({ authUser, tokenClient, onConnectGmail, onConne
 
       {!tokenClient && !msalReady && (
         <p className="text-sm text-muted-foreground">Loading authentication...</p>
+      )}
+
+      {gmailError && (
+        <p className="text-sm text-destructive">Gmail error: {gmailError}</p>
       )}
 
       <p className="text-sm text-muted-foreground">

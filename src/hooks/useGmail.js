@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { CLIENT_ID, SCOPES } from '@/lib/constants'
 
 export function useGmail() {
@@ -6,6 +6,8 @@ export function useGmail() {
   const [tokenClient, setTokenClient] = useState(null)
   const [accessToken, setAccessToken] = useState(null)
   const [gmailEmail, setGmailEmail] = useState(() => localStorage.getItem('sevr-gmail-email'))
+  const [gmailError, setGmailError] = useState(null)
+  const accessTokenRef = useRef(null)
 
   // Initialize Google Identity Services
   useEffect(() => {
@@ -17,8 +19,19 @@ export function useGmail() {
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
+        error_callback: (err) => {
+          console.error('Gmail OAuth error:', err)
+          setGmailError(err.type || 'OAuth failed')
+        },
         callback: async (response) => {
+          if (response.error) {
+            console.error('Gmail OAuth error response:', response)
+            setGmailError(`${response.error}: ${response.error_description || 'Unknown error'}`)
+            return
+          }
           if (response.access_token) {
+            setGmailError(null)
+            accessTokenRef.current = response.access_token
             setAccessToken(response.access_token)
             setIsGmailConnected(true)
             // Fetch Gmail user's email address
@@ -35,6 +48,9 @@ export function useGmail() {
             } catch (err) {
               console.error('Failed to fetch Gmail profile:', err)
             }
+          } else {
+            console.error('Gmail OAuth: no access token in response', response)
+            setGmailError('No access token received')
           }
         },
       })
@@ -53,22 +69,29 @@ export function useGmail() {
     }
   }, [tokenClient])
 
+  const getAccessToken = useCallback(() => {
+    return accessTokenRef.current
+  }, [])
+
   const handleDisconnectGmail = useCallback(() => {
-    if (accessToken) {
-      window.google.accounts.oauth2.revoke(accessToken)
+    if (accessTokenRef.current) {
+      window.google.accounts.oauth2.revoke(accessTokenRef.current)
     }
+    accessTokenRef.current = null
     setAccessToken(null)
     setIsGmailConnected(false)
     setGmailEmail(null)
     localStorage.removeItem('sevr-gmail-email')
-  }, [accessToken])
+  }, [])
 
   return {
     isGmailConnected,
     tokenClient,
     accessToken,
     gmailEmail,
+    gmailError,
     handleConnectGmail,
     handleDisconnectGmail,
+    getAccessToken,
   }
 }

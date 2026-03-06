@@ -104,8 +104,10 @@ function App() {
     tokenClient,
     accessToken,
     gmailEmail,
+    gmailError,
     handleConnectGmail,
     handleDisconnectGmail,
+    getAccessToken: getGmailAccessToken,
   } = useGmail()
 
   // Outlook hook
@@ -257,7 +259,10 @@ function App() {
 
   const handleScan = async () => {
     const providers = []
-    if (isGmailConnected) providers.push({ accessToken, type: 'gmail' })
+    if (isGmailConnected) {
+      const token = getGmailAccessToken()
+      providers.push({ accessToken: token, type: 'gmail' })
+    }
     if (isOutlookConnected) {
       const token = await getOutlookAccessToken()
       providers.push({ accessToken: token, type: 'outlook' })
@@ -287,6 +292,7 @@ function App() {
               onConnectGmail={handleConnectGmail}
               onConnectOutlook={handleConnectOutlook}
               msalReady={msalReady}
+              gmailError={gmailError}
             />
           </div>
         ) : (

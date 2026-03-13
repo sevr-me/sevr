@@ -27,12 +27,13 @@ app.use(helmet({
       scriptSrc: ["'self'", "https://accounts.google.com", "https://apis.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://accounts.google.com", "https://www.googleapis.com", "https://oauth2.googleapis.com", "https://graph.microsoft.com", "https://login.microsoftonline.com", "https://login.live.com"],
+      connectSrc: ["'self'", "https://accounts.google.com", "https://www.googleapis.com", "https://gmail.googleapis.com", "https://oauth2.googleapis.com", "https://graph.microsoft.com", "https://login.microsoftonline.com", "https://login.live.com"],
       frameSrc: ["'self'", "https://accounts.google.com", "https://login.microsoftonline.com", "https://login.live.com"],
       fontSrc: ["'self'"],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
 
 // CORS configuration

@@ -42,8 +42,14 @@ export function ConnectProvider({ authUser, tokenClient, onConnectGmail, onConne
         </CardContent>
       </Card>
 
+      <div className="rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-3 max-w-lg text-center">
+        <p className="text-sm font-medium text-amber-400">
+          Gmail Connect is currently unavailable while we await verification from Google. Check back soon.
+        </p>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-3">
-        <Button size="lg" onClick={onConnectGmail} disabled={!tokenClient}>
+        <Button size="lg" onClick={onConnectGmail} disabled>
           Connect Gmail (Read-Only)
         </Button>
         <Button size="lg" variant="outline" onClick={onConnectOutlook} disabled={!msalReady}>
